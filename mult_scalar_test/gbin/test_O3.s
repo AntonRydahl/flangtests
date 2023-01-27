@@ -5,43 +5,43 @@
 	.globl	main
 	.type	main, @function
 main:
-.LFB1:
+.LFB2:
 	.cfi_startproc
 	subq	$8, %rsp
 	.cfi_def_cfa_offset 16
 	call	_gfortran_set_args@PLT
-	leaq	options.1.1(%rip), %rsi
+	leaq	options.11.2(%rip), %rsi
 	movl	$7, %edi
 	call	_gfortran_set_options@PLT
-	movl	a.0(%rip), %eax
+	movl	a.1(%rip), %eax
 	leal	(%rax,%rax,4), %eax
-	movl	%eax, a.0(%rip)
-	movl	4+a.0(%rip), %eax
+	movl	%eax, a.1(%rip)
+	movl	4+a.1(%rip), %eax
 	leal	(%rax,%rax,4), %eax
-	movl	%eax, 4+a.0(%rip)
-	movl	8+a.0(%rip), %eax
+	movl	%eax, 4+a.1(%rip)
+	movl	8+a.1(%rip), %eax
 	leal	(%rax,%rax,4), %eax
-	movl	%eax, 8+a.0(%rip)
+	movl	%eax, 8+a.1(%rip)
 	xorl	%eax, %eax
 	addq	$8, %rsp
 	.cfi_def_cfa_offset 8
 	ret
 	.cfi_endproc
-.LFE1:
+.LFE2:
 	.size	main, .-main
 	.data
 	.align 8
-	.type	a.0, @object
-	.size	a.0, 12
-a.0:
+	.type	a.1, @object
+	.size	a.1, 12
+a.1:
 	.long	1
 	.long	2
 	.long	3
 	.section	.rodata
 	.align 16
-	.type	options.1.1, @object
-	.size	options.1.1, 28
-options.1.1:
+	.type	options.11.2, @object
+	.size	options.11.2, 28
+options.11.2:
 	.long	2116
 	.long	4095
 	.long	0

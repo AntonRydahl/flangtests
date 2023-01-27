@@ -9,20 +9,21 @@ MAIN__:
 	.cfi_offset 6, -16
 	movq	%rsp, %rbp
 	.cfi_def_cfa_register 6
+	movq	$0, -8(%rbp)
 	movl	$1, %eax
 .L3:
 	cmpq	$3, %rax
 	jg	.L2
 	leaq	-1(%rax), %rdx
 	leaq	0(,%rdx,4), %rcx
-	leaq	a.1(%rip), %rdx
+	leaq	a.2(%rip), %rdx
 	movl	(%rcx,%rdx), %ecx
 	leaq	-1(%rax), %rdi
 	movl	%ecx, %edx
 	sall	$2, %edx
 	leal	(%rdx,%rcx), %esi
 	leaq	0(,%rdi,4), %rcx
-	leaq	a.1(%rip), %rdx
+	leaq	a.2(%rip), %rdx
 	movl	%esi, (%rcx,%rdx)
 	addq	$1, %rax
 	jmp	.L3
@@ -37,7 +38,7 @@ MAIN__:
 	.globl	main
 	.type	main, @function
 main:
-.LFB1:
+.LFB2:
 	.cfi_startproc
 	pushq	%rbp
 	.cfi_def_cfa_offset 16
@@ -52,7 +53,7 @@ main:
 	movq	%rdx, %rsi
 	movl	%eax, %edi
 	call	_gfortran_set_args@PLT
-	leaq	options.1.0(%rip), %rsi
+	leaq	options.11.1(%rip), %rsi
 	movl	$7, %edi
 	call	_gfortran_set_options@PLT
 	call	MAIN__
@@ -61,21 +62,21 @@ main:
 	.cfi_def_cfa 7, 8
 	ret
 	.cfi_endproc
-.LFE1:
+.LFE2:
 	.size	main, .-main
 	.data
 	.align 8
-	.type	a.1, @object
-	.size	a.1, 12
-a.1:
+	.type	a.2, @object
+	.size	a.2, 12
+a.2:
 	.long	1
 	.long	2
 	.long	3
 	.section	.rodata
 	.align 16
-	.type	options.1.0, @object
-	.size	options.1.0, 28
-options.1.0:
+	.type	options.11.1, @object
+	.size	options.11.1, 28
+options.11.1:
 	.long	2116
 	.long	4095
 	.long	0

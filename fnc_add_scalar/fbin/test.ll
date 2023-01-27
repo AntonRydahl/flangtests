@@ -8,33 +8,46 @@ declare ptr @malloc(i64)
 declare void @free(ptr)
 
 define void @_QMtestPadd_arr(ptr %0, ptr %1) {
-  br label %3
+  %3 = getelementptr { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %1, i32 0, i32 7, i64 0, i32 0
+  %4 = load i64, ptr %3, align 8
+  %5 = getelementptr { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %1, i32 0, i32 7, i64 0, i32 1
+  %6 = load i64, ptr %5, align 8
+  %7 = getelementptr { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %1, i32 0, i32 7, i64 0, i32 2
+  %8 = load i64, ptr %7, align 8
+  %9 = icmp sgt i64 %6, 0
+  %10 = select i1 %9, i64 %6, i64 0
+  br label %11
 
-3:                                                ; preds = %7, %2
-  %4 = phi i64 [ %8, %7 ], [ 0, %2 ]
-  %5 = phi i64 [ %21, %7 ], [ 3, %2 ]
-  %6 = icmp sgt i64 %5, 0
-  br i1 %6, label %7, label %22
+11:                                               ; preds = %15, %2
+  %12 = phi i64 [ %16, %15 ], [ 0, %2 ]
+  %13 = phi i64 [ %34, %15 ], [ %10, %2 ]
+  %14 = icmp sgt i64 %13, 0
+  br i1 %14, label %15, label %35
 
-7:                                                ; preds = %3
-  %8 = add i64 %4, 1
-  %9 = sub i64 %8, 1
-  %10 = mul i64 %9, 1
-  %11 = mul i64 %10, 1
-  %12 = add i64 %11, 0
-  %13 = getelementptr i32, ptr %1, i64 %12
-  %14 = load i32, ptr %13, align 4
-  %15 = add i32 %14, 27
-  %16 = sub i64 %8, 1
-  %17 = mul i64 %16, 1
+15:                                               ; preds = %11
+  %16 = add i64 %12, 1
+  %17 = sub i64 %16, 1
   %18 = mul i64 %17, 1
-  %19 = add i64 %18, 0
-  %20 = getelementptr i32, ptr %0, i64 %19
-  store i32 %15, ptr %20, align 4
-  %21 = sub i64 %5, 1
-  br label %3
+  %19 = getelementptr { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %1, i32 0, i32 7, i32 0, i32 2
+  %20 = load i64, ptr %19, align 8
+  %21 = mul i64 %18, %20
+  %22 = add i64 %21, 0
+  %23 = getelementptr { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %1, i32 0, i32 0
+  %24 = load ptr, ptr %23, align 8
+  %25 = getelementptr i8, ptr %24, i64 %22
+  %26 = load i32, ptr %25, align 4
+  %27 = add i32 %26, 27
+  %28 = sub i64 %16, 1
+  %29 = mul i64 %28, 1
+  %30 = mul i64 %29, 1
+  %31 = add i64 %30, 0
+  %32 = mul i64 1, %10
+  %33 = getelementptr i32, ptr %0, i64 %31
+  store i32 %27, ptr %33, align 4
+  %34 = sub i64 %13, 1
+  br label %11
 
-22:                                               ; preds = %3
+35:                                               ; preds = %11
   ret void
 }
 

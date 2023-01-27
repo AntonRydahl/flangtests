@@ -1,3 +1,5 @@
+//void add_arrays(int* ) {}
+
 int main() {
     int a[3] = {17, 27, 37},
         b[3] = {44, 55, 66};
