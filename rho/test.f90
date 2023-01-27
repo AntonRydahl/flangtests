@@ -1,3 +1,5 @@
+! taken from https://github.com/fortran-lang/benchmarks/blob/main/poisson2d/optimized.f90
+
 module rhofunc
 implicit none
 public
