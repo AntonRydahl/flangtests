@@ -374,7 +374,7 @@ MAIN__:
 	call	_gfortran_cpu_time_8@PLT
 	leaq	.LC15(%rip), %rax
 	movq	%rax, -616(%rbp)
-	movl	$54, -608(%rbp)
+	movl	$56, -608(%rbp)
 	movl	$128, -624(%rbp)
 	movl	$6, -620(%rbp)
 	leaq	-624(%rbp), %rax

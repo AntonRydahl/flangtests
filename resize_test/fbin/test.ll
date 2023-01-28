@@ -7,6 +7,7 @@ target triple = "x86_64-unknown-linux-gnu"
 @_QFEmat = internal global [3 x [3 x i32]] undef
 @_QQcl.28493029 = linkonce constant [4 x i8] c"(I0)"
 @_QQcl.2E2F2E2F726573697A655F746573742F746573742E66393000 = linkonce constant [25 x i8] c"././resize_test/test.f90\00"
+@_QQro.2xi4.6cff4ff6f4002bd1fa86b17ec9335909 = internal constant [2 x i32] [i32 3, i32 3]
 @_QQEnvironmentDefaults = constant ptr null
 
 declare ptr @malloc(i64)
@@ -174,6 +175,118 @@ define void @_QQmain() {
   ret void
 }
 
+define void @_QFPresh(ptr %0, ptr %1) {
+  %3 = alloca { ptr, i64, i32, i8, i8, i8, i8, [2 x [3 x i64]] }, align 8
+  %4 = alloca { ptr, i64, i32, i8, i8, i8, i8, [2 x [3 x i64]] }, align 8
+  %5 = alloca { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, align 8
+  %6 = alloca { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, align 8
+  %7 = alloca { ptr, i64, i32, i8, i8, i8, i8, [2 x [3 x i64]] }, i64 1, align 8
+  %8 = insertvalue { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] } { ptr undef, i64 ptrtoint (ptr getelementptr (i32, ptr null, i32 1) to i64), i32 20180515, i8 1, i8 9, i8 0, i8 0, [1 x [3 x i64]] [[3 x i64] [i64 1, i64 9, i64 ptrtoint (ptr getelementptr (i32, ptr null, i32 1) to i64)]] }, ptr %1, 0
+  store { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] } %8, ptr %6, align 8
+  %9 = call ptr @malloc(i64 ptrtoint (ptr getelementptr ([2 x i32], ptr null, i32 1) to i64))
+  br label %10
+
+10:                                               ; preds = %14, %2
+  %11 = phi i64 [ %15, %14 ], [ 0, %2 ]
+  %12 = phi i64 [ %27, %14 ], [ 2, %2 ]
+  %13 = icmp sgt i64 %12, 0
+  br i1 %13, label %14, label %28
+
+14:                                               ; preds = %10
+  %15 = add i64 %11, 1
+  %16 = sub i64 %15, 1
+  %17 = mul i64 %16, 1
+  %18 = mul i64 %17, 1
+  %19 = add i64 %18, 0
+  %20 = getelementptr i32, ptr @_QQro.2xi4.6cff4ff6f4002bd1fa86b17ec9335909, i64 %19
+  %21 = load i32, ptr %20, align 4
+  %22 = sub i64 %15, 1
+  %23 = mul i64 %22, 1
+  %24 = mul i64 %23, 1
+  %25 = add i64 %24, 0
+  %26 = getelementptr i32, ptr %9, i64 %25
+  store i32 %21, ptr %26, align 4
+  %27 = sub i64 %12, 1
+  br label %10
+
+28:                                               ; preds = %10
+  %29 = insertvalue { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] } { ptr undef, i64 ptrtoint (ptr getelementptr (i32, ptr null, i32 1) to i64), i32 20180515, i8 1, i8 9, i8 0, i8 0, [1 x [3 x i64]] [[3 x i64] [i64 1, i64 2, i64 ptrtoint (ptr getelementptr (i32, ptr null, i32 1) to i64)]] }, ptr %9, 0
+  store { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] } %29, ptr %5, align 8
+  store { ptr, i64, i32, i8, i8, i8, i8, [2 x [3 x i64]] } { ptr null, i64 ptrtoint (ptr getelementptr (i32, ptr null, i32 1) to i64), i32 20180515, i8 2, i8 9, i8 2, i8 0, [2 x [3 x i64]] [[3 x i64] [i64 1, i64 0, i64 ptrtoint (ptr getelementptr (i32, ptr null, i32 1) to i64)], [3 x i64] [i64 1, i64 0, i64 0]] }, ptr %4, align 8
+  %30 = load { ptr, i64, i32, i8, i8, i8, i8, [2 x [3 x i64]] }, ptr %4, align 8
+  store { ptr, i64, i32, i8, i8, i8, i8, [2 x [3 x i64]] } %30, ptr %7, align 8
+  %31 = call {} @_FortranAReshape(ptr %7, ptr %6, ptr %5, ptr null, ptr null, ptr @_QQcl.2E2F2E2F726573697A655F746573742F746573742E66393000, i32 19)
+  %32 = load { ptr, i64, i32, i8, i8, i8, i8, [2 x [3 x i64]] }, ptr %7, align 8
+  store { ptr, i64, i32, i8, i8, i8, i8, [2 x [3 x i64]] } %32, ptr %3, align 8
+  %33 = getelementptr { ptr, i64, i32, i8, i8, i8, i8, [2 x [3 x i64]] }, ptr %3, i32 0, i32 7, i64 0, i32 0
+  %34 = load i64, ptr %33, align 8
+  %35 = getelementptr { ptr, i64, i32, i8, i8, i8, i8, [2 x [3 x i64]] }, ptr %3, i32 0, i32 7, i64 0, i32 1
+  %36 = load i64, ptr %35, align 8
+  %37 = getelementptr { ptr, i64, i32, i8, i8, i8, i8, [2 x [3 x i64]] }, ptr %3, i32 0, i32 7, i64 0, i32 2
+  %38 = load i64, ptr %37, align 8
+  %39 = getelementptr { ptr, i64, i32, i8, i8, i8, i8, [2 x [3 x i64]] }, ptr %3, i32 0, i32 7, i64 1, i32 0
+  %40 = load i64, ptr %39, align 8
+  %41 = getelementptr { ptr, i64, i32, i8, i8, i8, i8, [2 x [3 x i64]] }, ptr %3, i32 0, i32 7, i64 1, i32 1
+  %42 = load i64, ptr %41, align 8
+  %43 = getelementptr { ptr, i64, i32, i8, i8, i8, i8, [2 x [3 x i64]] }, ptr %3, i32 0, i32 7, i64 1, i32 2
+  %44 = load i64, ptr %43, align 8
+  %45 = getelementptr { ptr, i64, i32, i8, i8, i8, i8, [2 x [3 x i64]] }, ptr %3, i32 0, i32 0
+  %46 = load ptr, ptr %45, align 8
+  br label %47
+
+47:                                               ; preds = %82, %28
+  %48 = phi i64 [ %83, %82 ], [ 0, %28 ]
+  %49 = phi i64 [ %84, %82 ], [ 3, %28 ]
+  %50 = icmp sgt i64 %49, 0
+  br i1 %50, label %51, label %85
+
+51:                                               ; preds = %55, %47
+  %52 = phi i64 [ %70, %55 ], [ 0, %47 ]
+  %53 = phi i64 [ %81, %55 ], [ 3, %47 ]
+  %54 = icmp sgt i64 %53, 0
+  br i1 %54, label %55, label %82
+
+55:                                               ; preds = %51
+  %56 = add i64 %52, %34
+  %57 = add i64 %48, %40
+  %58 = sub i64 %56, %34
+  %59 = mul i64 %58, 1
+  %60 = mul i64 %59, 1
+  %61 = add i64 %60, 0
+  %62 = mul i64 1, %36
+  %63 = sub i64 %57, %40
+  %64 = mul i64 %63, 1
+  %65 = mul i64 %64, %62
+  %66 = add i64 %65, %61
+  %67 = mul i64 %62, %42
+  %68 = getelementptr i32, ptr %46, i64 %66
+  %69 = load i32, ptr %68, align 4
+  %70 = add i64 %52, 1
+  %71 = add i64 %48, 1
+  %72 = sub i64 %70, 1
+  %73 = mul i64 %72, 1
+  %74 = mul i64 %73, 1
+  %75 = add i64 %74, 0
+  %76 = sub i64 %71, 1
+  %77 = mul i64 %76, 1
+  %78 = mul i64 %77, 3
+  %79 = add i64 %78, %75
+  %80 = getelementptr i32, ptr %0, i64 %79
+  store i32 %69, ptr %80, align 4
+  %81 = sub i64 %53, 1
+  br label %51
+
+82:                                               ; preds = %51
+  %83 = add i64 %48, 1
+  %84 = sub i64 %49, 1
+  br label %47
+
+85:                                               ; preds = %47
+  call void @free(ptr %46)
+  call void @free(ptr %9)
+  ret void
+}
+
 define void @_QFPresh_manual(ptr %0, ptr %1) {
   br label %3
 
@@ -281,6 +394,8 @@ declare i32 @_FortranAioEndIoStatement(ptr)
 declare ptr @_FortranAioBeginExternalListOutput(i32, ptr, i32)
 
 declare i1 @_FortranAioOutputReal32(ptr, float)
+
+declare {} @_FortranAReshape(ptr, ptr, ptr, ptr, ptr, ptr, i32)
 
 attributes #0 = { nocallback nofree nosync nounwind willreturn }
 

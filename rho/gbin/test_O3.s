@@ -500,7 +500,7 @@ MAIN__:
 	call	_gfortran_cpu_time_8@PLT
 	leaq	.LC20(%rip), %rax
 	movq	%rbp, %rdi
-	movl	$54, 64(%rsp)
+	movl	$56, 64(%rsp)
 	movq	%rax, 56(%rsp)
 	movq	.LC21(%rip), %rax
 	movq	%rax, 48(%rsp)

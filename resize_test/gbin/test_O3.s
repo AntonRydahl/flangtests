@@ -88,12 +88,12 @@ MAIN__:
 	.globl	main
 	.type	main, @function
 main:
-.LFB2:
+.LFB3:
 	.cfi_startproc
 	subq	$8, %rsp
 	.cfi_def_cfa_offset 16
 	call	_gfortran_set_args@PLT
-	leaq	options.16.1(%rip), %rsi
+	leaq	options.24.2(%rip), %rsi
 	movl	$7, %edi
 	call	_gfortran_set_options@PLT
 	call	MAIN__
@@ -102,13 +102,13 @@ main:
 	.cfi_def_cfa_offset 8
 	ret
 	.cfi_endproc
-.LFE2:
+.LFE3:
 	.size	main, .-main
 	.section	.rodata
 	.align 16
-	.type	options.16.1, @object
-	.size	options.16.1, 28
-options.16.1:
+	.type	options.24.2, @object
+	.size	options.24.2, 28
+options.24.2:
 	.long	2116
 	.long	4095
 	.long	0

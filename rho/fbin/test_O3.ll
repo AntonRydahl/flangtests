@@ -250,7 +250,7 @@ _FortranAMaxvalReal8x2_contract_simplified.exit:  ; preds = %._crit_edge.us.i
 
 112:                                              ; preds = %_FortranAMaxvalReal8x2_contract_simplified.exit
   %113 = tail call contract double @_FortranACpuTime()
-  %114 = tail call ptr @_FortranAioBeginExternalListOutput(i32 -1, ptr nonnull @_QQcl.2E2F2E2F72686F2F746573742E66393000, i32 54)
+  %114 = tail call ptr @_FortranAioBeginExternalListOutput(i32 -1, ptr nonnull @_QQcl.2E2F2E2F72686F2F746573742E66393000, i32 56)
   %115 = fsub contract double %113, %0
   %116 = tail call i1 @_FortranAioOutputReal64(ptr %114, double %115)
   %117 = tail call i1 @_FortranAioOutputInteger32(ptr %114, i32 %110)

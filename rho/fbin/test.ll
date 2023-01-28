@@ -346,7 +346,7 @@ define void @_QQmain() {
 206:                                              ; preds = %160
   %207 = insertvalue { ptr, i64, i32, i8, i8, i8, i8, [2 x [3 x i64]] } { ptr undef, i64 ptrtoint (ptr getelementptr (double, ptr null, i32 1) to i64), i32 20180515, i8 2, i8 28, i8 0, i8 0, [2 x [3 x i64]] [[3 x i64] [i64 1, i64 300, i64 ptrtoint (ptr getelementptr (double, ptr null, i32 1) to i64)], [3 x i64] [i64 1, i64 300, i64 mul (i64 ptrtoint (ptr getelementptr (double, ptr null, i32 1) to i64), i64 300)]] }, ptr %159, 0
   store { ptr, i64, i32, i8, i8, i8, i8, [2 x [3 x i64]] } %207, ptr %1, align 8
-  %208 = call contract double @_FortranAMaxvalReal8(ptr %1, ptr @_QQcl.2E2F2E2F72686F2F746573742E66393000, i32 48, i32 0, ptr null)
+  %208 = call contract double @_FortranAMaxvalReal8(ptr %1, ptr @_QQcl.2E2F2E2F72686F2F746573742E66393000, i32 50, i32 0, ptr null)
   store double %208, ptr %6, align 8
   call void @free(ptr %159)
   br label %209
@@ -397,7 +397,7 @@ define void @_QQmain() {
 243:                                              ; preds = %97
   %244 = call contract double @_FortranACpuTime()
   store double %244, ptr %7, align 8
-  %245 = call ptr @_FortranAioBeginExternalListOutput(i32 -1, ptr @_QQcl.2E2F2E2F72686F2F746573742E66393000, i32 54)
+  %245 = call ptr @_FortranAioBeginExternalListOutput(i32 -1, ptr @_QQcl.2E2F2E2F72686F2F746573742E66393000, i32 56)
   %246 = load double, ptr %7, align 8
   %247 = load double, ptr %5, align 8
   %248 = fsub contract double %246, %247

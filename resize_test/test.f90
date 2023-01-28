@@ -13,12 +13,11 @@ program test
     print '(I0)', mat(1, 1)
     print *, (t2 - t1)
 contains
-    ! pure function resh(vec) result(out)
-    !     integer, intent(in) :: vec(9)
-    !     integer :: out(3, 3) 
-
-    !     out = reshape(vec, [3, 3])
-    ! end function
+    pure function resh(vec) result(out)
+        integer, intent(in) :: vec(9)
+        integer :: out(3, 3) 
+        out = reshape(vec, [3, 3])
+    end function
 
     pure function resh_manual(vec) result(out)
         integer, intent(in) :: vec(9)
