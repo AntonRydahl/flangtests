@@ -12,4 +12,4 @@ clang -S -emit-llvm "./$1/test.c" -O3 -o "./$1/cbin/test_O3.ll"
 
 gfortran-10 -S "./$1/test.f90" -o "./$1/gbin/test.s"
 gfortran-10 -S -O2 "./$1/test.f90" -o "./$1/gbin/test_O2.s"
-gfortran-10 -S -O3 "./$1/test.f90" -o "./$1/gbin/test_O3.s"
+gfortran-10 -S -Ofast "./$1/test.f90" -o "./$1/gbin/test_O3.s"

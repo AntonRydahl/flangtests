@@ -51,6 +51,43 @@ define void @_QMtestPadd_arr(ptr %0, ptr %1) {
   ret void
 }
 
+define void @_QMtestPadd_arr_opt(ptr %0, ptr %1, ptr %2) {
+  %4 = load i32, ptr %2, align 4
+  %5 = sext i32 %4 to i64
+  %6 = icmp sgt i64 %5, 0
+  %7 = select i1 %6, i64 %5, i64 0
+  br label %8
+
+8:                                                ; preds = %12, %3
+  %9 = phi i64 [ %13, %12 ], [ 0, %3 ]
+  %10 = phi i64 [ %28, %12 ], [ %7, %3 ]
+  %11 = icmp sgt i64 %10, 0
+  br i1 %11, label %12, label %29
+
+12:                                               ; preds = %8
+  %13 = add i64 %9, 1
+  %14 = sub i64 %13, 1
+  %15 = mul i64 %14, 1
+  %16 = mul i64 %15, 1
+  %17 = add i64 %16, 0
+  %18 = mul i64 1, %7
+  %19 = getelementptr i32, ptr %1, i64 %17
+  %20 = load i32, ptr %19, align 4
+  %21 = add i32 %20, 27
+  %22 = sub i64 %13, 1
+  %23 = mul i64 %22, 1
+  %24 = mul i64 %23, 1
+  %25 = add i64 %24, 0
+  %26 = mul i64 1, %7
+  %27 = getelementptr i32, ptr %0, i64 %25
+  store i32 %21, ptr %27, align 4
+  %28 = sub i64 %10, 1
+  br label %8
+
+29:                                               ; preds = %8
+  ret void
+}
+
 !llvm.module.flags = !{!0, !1, !2}
 
 !0 = !{i32 2, !"Debug Info Version", i32 3}

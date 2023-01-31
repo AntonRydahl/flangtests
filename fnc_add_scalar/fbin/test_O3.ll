@@ -80,7 +80,71 @@ define void @_QMtestPadd_arr(ptr nocapture writeonly %0, ptr nocapture readonly 
   ret void
 }
 
+; Function Attrs: nofree nosync nounwind memory(argmem: readwrite)
+define void @_QMtestPadd_arr_opt(ptr nocapture writeonly %0, ptr nocapture readonly %1, ptr nocapture readonly %2) local_unnamed_addr #1 {
+  %4 = load i32, ptr %2, align 4, !tbaa !7
+  %.not = icmp slt i32 %4, 1
+  br i1 %.not, label %._crit_edge, label %.lr.ph.preheader
+
+.lr.ph.preheader:                                 ; preds = %3
+  %5 = ptrtoint ptr %0 to i64
+  %6 = ptrtoint ptr %1 to i64
+  %7 = zext i32 %4 to i64
+  %min.iters.check = icmp ult i32 %4, 8
+  %8 = sub i64 %5, %6
+  %diff.check = icmp ult i64 %8, 32
+  %or.cond = select i1 %min.iters.check, i1 true, i1 %diff.check
+  br i1 %or.cond, label %.lr.ph.preheader3, label %vector.ph
+
+vector.ph:                                        ; preds = %.lr.ph.preheader
+  %n.vec = and i64 %7, 4294967288
+  %ind.end = and i64 %7, 7
+  br label %vector.body
+
+vector.body:                                      ; preds = %vector.body, %vector.ph
+  %index = phi i64 [ 0, %vector.ph ], [ %index.next, %vector.body ]
+  %9 = getelementptr i32, ptr %1, i64 %index
+  %wide.load = load <4 x i32>, ptr %9, align 4, !tbaa !7
+  %10 = getelementptr i32, ptr %9, i64 4
+  %wide.load2 = load <4 x i32>, ptr %10, align 4, !tbaa !7
+  %11 = add <4 x i32> %wide.load, <i32 27, i32 27, i32 27, i32 27>
+  %12 = add <4 x i32> %wide.load2, <i32 27, i32 27, i32 27, i32 27>
+  %13 = getelementptr i32, ptr %0, i64 %index
+  store <4 x i32> %11, ptr %13, align 4, !tbaa !7
+  %14 = getelementptr i32, ptr %13, i64 4
+  store <4 x i32> %12, ptr %14, align 4, !tbaa !7
+  %index.next = add nuw i64 %index, 8
+  %15 = icmp eq i64 %index.next, %n.vec
+  br i1 %15, label %middle.block, label %vector.body, !llvm.loop !11
+
+middle.block:                                     ; preds = %vector.body
+  %cmp.n = icmp eq i64 %n.vec, %7
+  br i1 %cmp.n, label %._crit_edge, label %.lr.ph.preheader3
+
+.lr.ph.preheader3:                                ; preds = %.lr.ph.preheader, %middle.block
+  %.ph = phi i64 [ %7, %.lr.ph.preheader ], [ %ind.end, %middle.block ]
+  %.ph4 = phi i64 [ 0, %.lr.ph.preheader ], [ %n.vec, %middle.block ]
+  br label %.lr.ph
+
+.lr.ph:                                           ; preds = %.lr.ph.preheader3, %.lr.ph
+  %16 = phi i64 [ %23, %.lr.ph ], [ %.ph, %.lr.ph.preheader3 ]
+  %17 = phi i64 [ %18, %.lr.ph ], [ %.ph4, %.lr.ph.preheader3 ]
+  %18 = add nuw nsw i64 %17, 1
+  %19 = getelementptr i32, ptr %1, i64 %17
+  %20 = load i32, ptr %19, align 4, !tbaa !7
+  %21 = add i32 %20, 27
+  %22 = getelementptr i32, ptr %0, i64 %17
+  store i32 %21, ptr %22, align 4, !tbaa !7
+  %23 = add nsw i64 %16, -1
+  %24 = icmp ugt i64 %16, 1
+  br i1 %24, label %.lr.ph, label %._crit_edge, !llvm.loop !14
+
+._crit_edge:                                      ; preds = %.lr.ph, %middle.block, %3
+  ret void
+}
+
 attributes #0 = { nofree nosync nounwind memory(read, argmem: readwrite, inaccessiblemem: none) }
+attributes #1 = { nofree nosync nounwind memory(argmem: readwrite) }
 
 !llvm.module.flags = !{!0, !1, !2}
 
@@ -95,3 +159,7 @@ attributes #0 = { nofree nosync nounwind memory(read, argmem: readwrite, inacces
 !8 = !{!"any data access", !5, i64 0}
 !9 = distinct !{!9, !10}
 !10 = !{!"llvm.loop.unroll.disable"}
+!11 = distinct !{!11, !12, !13}
+!12 = !{!"llvm.loop.isvectorized", i32 1}
+!13 = !{!"llvm.loop.unroll.runtime.disable"}
+!14 = distinct !{!14, !12}

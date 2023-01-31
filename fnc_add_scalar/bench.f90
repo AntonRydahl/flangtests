@@ -8,7 +8,7 @@ program test
     call cpu_time(t1)
 
     do i = 1, 1000000000
-        o = add_arr(m)
+        o = add_arr_opt(m, 7)
     end do
 
     call cpu_time(t2)
@@ -23,4 +23,12 @@ contains
 
         out = vec + 27;
     end function
+       
+    pure function add_arr_opt(vec, n) result(out)
+        integer, intent(in) :: n, vec(n)
+        integer :: out(n)
+
+        out = vec + 27;
+    end function
+
 end program

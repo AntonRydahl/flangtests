@@ -8,6 +8,14 @@ contains
         out = vec + 27;
     end function
 
+    
+    pure function add_arr_opt(vec, n) result(out)
+        integer, intent(in) :: n, vec(n)
+        integer :: out(n)
+
+        out = vec + 27;
+    end function
+
     ! pure function add_stride(v)
     !     integer, intent(inout) :: v(10)
 
