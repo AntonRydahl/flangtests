@@ -5,7 +5,7 @@ if [ ! -e "$F_FILE" ]; then
     F_FILE="./$1/test.f90"
 fi
 
-~/flang_install/build/bin/flang-new -Ofast -L ~/flang_install/install/lib "$F_FILE" -o "./$1/bbin/flangtest_bin"
+flang-new -Ofast "$F_FILE" -o "./$1/bbin/flangtest_bin"
 gfortran-10 "$F_FILE"  -Ofast -o "./$1/bbin/gforttest_bin"
 
 #if [ $2 == "" ]
