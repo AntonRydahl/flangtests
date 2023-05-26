@@ -1,4 +1,5 @@
 #include <stdio.h>
+//#include <string.h>
 //void add_arrays(int* ) {}
 
 int main() {
@@ -11,6 +12,6 @@ int main() {
     }
 
     for (int i = 0; i < 3; i++) {
-        println("%d", c[i]);
+        printf("%d\n", c[i]);
     }
 }
