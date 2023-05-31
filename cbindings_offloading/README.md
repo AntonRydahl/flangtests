@@ -6,12 +6,23 @@ Even though the `flang-new` compiler does not yet offer offloading to GPUs, FORT
 
 ## C Bindings
 Since FORTRAN 2003, the language has supported the language binding attribute `bind(C,name=some_name)` where C is the inly supported language. The optional argument can `name` specifier can alter the external name of the function. As an example, 
-```
+```fortran
 function a(...) bind(C,name=b)
 ...
 end function
 ```
 can only be called as *a* in a `FORTRAN` program and *b* in a `C` program
+
+## Data Types
+| FORTRAN  | Constant | C        |
+|:--------:|:--------:|:--------:|
+| INTEGER  | C_INT    | int      |
+| INTEGER  | C_INT32_T| int32_t  |
+| REAL     | C_FLOAT  | float    |
+| REAL     | C_DOUBLE | double   |
+
+
+An extensive overview can be found at [gcc.gnu.org](https://gcc.gnu.org/onlinedocs/gcc-4.7.4/gfortran/ISO_005fC_005fBINDING.html).
 
 ## Example I: Subroutine - Call by Reference
 ```fortran
@@ -23,7 +34,7 @@ subroutine a_subroutine(c_index, arr) bind(C, name="increment_at")
 end subroutine
 ```
 
-## Example II; Funcion - Call by Value
+## Example II: Funcion - Call by Value
 ```fortran
 function a_function(input) result(output) bind(C, name="increment")
     use ISO_C_BINDING
