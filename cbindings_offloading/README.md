@@ -33,8 +33,13 @@ subroutine a_subroutine(c_index, arr) bind(C, name="increment_at")
     arr(c_index+1) = arr(c_index+1) + 1
 end subroutine
 ```
+The `C` interface for the function is
+```C
+void increment_at(int *, int *);
+```
 
 ## Example II: Funcion - Call by Value
+In this example, the input is passed by value while the result is passed by reference.
 ```fortran
 function a_function(input) result(output) bind(C, name="increment")
     use ISO_C_BINDING
@@ -43,3 +48,7 @@ function a_function(input) result(output) bind(C, name="increment")
     output = input + 1
 end function
 ```
+The `C`	interface for the function is
+```C
+int increment(int);
+``` 
