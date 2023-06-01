@@ -11,9 +11,9 @@ lib: lib/CC/$(APP).o lib/FC/$(APP).o
 
 llvmir: ir/CC/$(APP).ll ir/FC/$(APP).ll
 
-CFLAGS = -fno-pie #std=c99 -Wall -Wextra $(OPT) -fno-pie #-fno-dwarf2-cfi-asm -fno-asynchronous-unwind-tables
+CFLAGS = -fno-pie $(OPT) #std=c99 -Wall -Wextra $(OPT) -fno-pie #-fno-dwarf2-cfi-asm -fno-asynchronous-unwind-tables
 
-FFLAGS = -fno-pie #$(OPT)  -fno-pie
+FFLAGS = -fno-pie $(OPT) # -fno-pie
 
 # Compiling source to LLVM IR
 ir/CC/$(APP).ll: src/$(APP).c
@@ -38,10 +38,12 @@ lib/FC/$(APP).o: bitcode/FC/$(APP).bc
 
 # Linking object files
 bin/CC/$(APP): lib/CC/$(APP).o
-	$(CC) lib/CC/$(APP).o -static -o bin/CC/$(APP)
+	$(CC) lib/CC/$(APP).o -static -o bin/CC/$(APP) -L/p/lustre1/rydahl1/LLVM/install/lib
 
 bin/FC/$(APP): lib/FC/$(APP).o
-	$(FC) lib/FC/$(APP).o -static -o bin/FC/$(APP)
+	$(FC) lib/FC/$(APP).o -static -o bin/FC/$(APP) -L/p/lustre1/rydahl1/LLVM/install/lib -pthread 
+
+#-static -lpthread -o bin/FC/$(APP)
 
 # Removing files
 clean:
