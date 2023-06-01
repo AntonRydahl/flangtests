@@ -17,42 +17,59 @@ entry:
   %i = alloca i32, align 4
   store i32 0, ptr %retval, align 4
   store i32 1048576, ptr %length, align 4
+  ; Allocating array
   %call = call noalias ptr @malloc(i64 noundef 8388608) #4
   store ptr %call, ptr %arr, align 8
+  ; Initializing loop counter to 0
   store i32 0, ptr %i, align 4
+  ; Start for loop
   br label %for.cond
 
 for.cond:                                         ; preds = %for.inc, %entry
   %0 = load i32, ptr %i, align 4
+  ; If loop counter is strictly smaller than bound, go to body, else, go to end
   %cmp = icmp slt i32 %0, 1048576
   br i1 %cmp, label %for.body, label %for.end
 
 for.body:                                         ; preds = %for.cond
+  ; Load the value of the loop counter
   %1 = load i32, ptr %i, align 4
+  ; Convert loop counter from int to double (signed integer to floatingpoint)
   %conv = sitofp i32 %1 to double
+  ; Divide converted loop counter by loop bound
   %div = fdiv double %conv, 0x4130000000000000
+  ; Load result and loop counter
   %2 = load ptr, ptr %arr, align 8
   %3 = load i32, ptr %i, align 4
+  ; Extend integer index to pointer
   %idxprom = sext i32 %3 to i64
+  ; Load the address to write result to
   %arrayidx = getelementptr inbounds double, ptr %2, i64 %idxprom
+  ; Store the result
   store double %div, ptr %arrayidx, align 8
+  ; Go to increment
   br label %for.inc
 
 for.inc:                                          ; preds = %for.body
+  ; increment loop counter by one
   %4 = load i32, ptr %i, align 4
   %inc = add nsw i32 %4, 1
   store i32 %inc, ptr %i, align 4
   br label %for.cond, !llvm.loop !4
 
 for.end:                                          ; preds = %for.cond
+  ; Load first element of array
   %5 = load ptr, ptr %arr, align 8
   %arrayidx1 = getelementptr inbounds double, ptr %5, i64 0
   %6 = load double, ptr %arrayidx1, align 8
+  ; Load last element of array
   %7 = load ptr, ptr %arr, align 8
   %arrayidx2 = getelementptr inbounds double, ptr %7, i64 1048575
   %8 = load double, ptr %arrayidx2, align 8
+  ; Add the first and last elements and print result
   %add = fadd double %6, %8
   %call3 = call i32 (ptr, ...) @printf(ptr noundef @.str, i32 noundef 1048575, double noundef %add)
+  ; Free the allocated array
   %9 = load ptr, ptr %arr, align 8
   call void @free(ptr noundef %9) #5
   ret i32 0
@@ -63,6 +80,7 @@ declare dso_local noalias ptr @malloc(i64 noundef) #1
 
 declare dso_local i32 @printf(ptr noundef, ...) #2
 ```
+
 ## Loop Compiled With `-fopenmp`
 ```llvmir
 ; Function Attrs: nounwind
