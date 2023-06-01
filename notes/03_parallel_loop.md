@@ -1,5 +1,21 @@
 # Parallel For / Parallel Do Loops
-## Without `-fopenmp`
+## `clang` Program
+
+```C
+#include <stdio.h>
+#include <stdlib.h>
+int main(void) {
+	const int length = 1024*1024;
+	double * arr = (double *) malloc(length*sizeof(double));
+	#pragma omp parallel for
+	for(int i = 0; i < length; i++) arr[i] = ((double) i)/length;
+	printf("The result of arr[0] + arr[%d] is %1.9lf\n",length-1,arr[0] + arr[length-1]);
+	free(arr);
+	return 0;
+}
+```
+
+### `clang` Without `-fopenmp`
 ```llvmir
 ; ModuleID = 'src/parallel_loop.c'
 source_filename = "src/parallel_loop.c"
@@ -81,7 +97,7 @@ declare dso_local noalias ptr @malloc(i64 noundef) #1
 declare dso_local i32 @printf(ptr noundef, ...) #2
 ```
 
-## Loop Compiled With `-fopenmp`
+### `clang` - Loop Compiled With `-fopenmp`
 ```llvmir
 ; Function Attrs: nounwind
 declare dso_local void @free(ptr noundef) #3
@@ -257,4 +273,30 @@ attributes #6 = { nounwind allocsize(0) }
 !6 = !{!"clang version 17.0.0 (https://github.com/llvm/llvm-project.git 2e4e218474320abf480c39d3b968a5a09477ad03)"}
 !7 = !{!8}
 !8 = !{i64 2, i64 -1, i64 -1, i1 true}
+```
+
+## `FORTRAN` Program
+```FORTRAN
+PROGRAM parallel_loop
+!-----------------------------------------------------------------------
+!  This program is used to test wheter flang eliminates unused variables
+!-----------------------------------------------------------------------
+IMPLICIT NONE
+! Declare local variables
+INTEGER(kind=4)                         :: length, i
+REAL(kind=8), allocatable	:: arr(:)
+length = 1024*1024
+allocate (arr(length))
+! Parallel do loop
+!$omp parallel do
+do i=1,length
+	arr(i) = REAL(i-1,kind=8)/length
+end do
+!$omp end parallel do
+! Write the result
+write(*,100) "The result of arr(1) = arr(",length,") is ", (arr(1) + arr(length))
+100 format (A,I7,A,F10.9)
+! Deallocate Array
+deallocate(arr)
+END PROGRAM parallel_loop
 ```
