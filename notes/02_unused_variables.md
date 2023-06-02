@@ -7,7 +7,7 @@ make APP=unused_variables OPT=<-O0,-O3>
 ```
 ## `clang`
 ### Optimization Level 0
-```llvmir
+```llvm
 define dso_local i32 @main() #0 {
 entry:
   %retval = alloca i32, align 4
@@ -40,7 +40,7 @@ entry:
 ```
 
 ### Optimization Level 3
-```llvmir
+```llvm
 define dso_local i32 @main() local_unnamed_addr #0 {
 entry:
   %call = tail call i32 (ptr, ...) @printf(ptr noundef nonnull dereferenceable(1) @.str, i32 noundef 9, i32 noundef 11, i32 noundef 99)
@@ -50,7 +50,7 @@ entry:
 
 ## `flang-new`
 ### Optimization Level 0
-```llvmir
+```llvm
 define void @_QQmain() {
   %1 = alloca i32, i64 1, align 4
   %2 = alloca i32, i64 1, align 4
@@ -88,7 +88,7 @@ define void @_QQmain() {
 
 
 ### Optimization Level 3
-```llvmir
+```llvm
 define void @_QQmain() local_unnamed_addr {
   %1 = tail call ptr @_FortranAioBeginExternalFormattedOutput(ptr nonnull @_QQcl.28612C69312C612C69322C612C693229, i64 16, ptr null, i32 -1, ptr nonnull @_QQcl.e785c8b6910eca214959dafb9952487f, i32 16)
   %2 = tail call i1 @_FortranAioOutputAscii(ptr %1, ptr nonnull @_QQcl.54686520726573756C74206F6620, i64 14)

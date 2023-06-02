@@ -16,7 +16,7 @@ int main(void) {
 ```
 
 ### `clang` Without `-fopenmp`
-```llvmir
+```llvm
 ; ModuleID = 'src/parallel_loop.c'
 source_filename = "src/parallel_loop.c"
 target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -98,7 +98,7 @@ declare dso_local i32 @printf(ptr noundef, ...) #2
 ```
 
 ### `clang` - Loop Compiled With `-fopenmp`
-```llvmir
+```llvm
 ; Function Attrs: nounwind
 declare dso_local void @free(ptr noundef) #3
 
@@ -303,7 +303,7 @@ END PROGRAM parallel_loop
 
 ## Comparison of Code Compiled with `-fopenmp -O3`
 ### Code Generated with `clang`
-```llvmir
+```llvm
 ; ModuleID = 'src/parallel_loop.c'
 source_filename = "src/parallel_loop.c"
 target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -388,7 +388,7 @@ attributes #5 = { nounwind }
 ```
 
 ### Code Generated with `flang-new`
-```llvmir
+```llvm
 ; ModuleID = 'FIRModule'
 source_filename = "FIRModule"
 target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
