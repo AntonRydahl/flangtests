@@ -20,8 +20,6 @@ int main(void) {
 ```
 ### `clang -fopenmp -O0`
 ```llvm
-
-
 ; ModuleID = 'src/loop_reduction.c'
 source_filename = "src/loop_reduction.c"
 target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -48,6 +46,9 @@ entry:
   %call = call noalias ptr @malloc(i64 noundef 8388608) #8
   store ptr %call, ptr %arr, align 8
   store double 0.000000e+00, ptr %sum, align 8
+```
+`__kmpc_fork_call()` calls the outlined region `main.omp_outlined`:
+```llvm
   call void (ptr, i32, ptr, ...) @__kmpc_fork_call(ptr @3, i32 3, ptr @main.omp_outlined, ptr %length, ptr %arr, ptr %sum)
   %0 = load double, ptr %sum, align 8
   %call1 = call i32 (ptr, ...) @printf(ptr noundef @.str, i32 noundef 1048575, double noundef %0)
@@ -91,7 +92,13 @@ entry:
   store double 0.000000e+00, ptr %sum1, align 8
   %3 = load ptr, ptr %.global_tid..addr, align 8
   %4 = load i32, ptr %3, align 4
+```
+`__kmp_for_static_init()` computes one set of iteration bounds. In this case, static means that the number of iterations are decided at compile time. With dynamic scheduling, it would have been `__kmp_dispatch_next`.
+```llvm
   call void @__kmpc_for_static_init_4(ptr @1, i32 %4, i32 34, ptr %.omp.is_last, ptr %.omp.lb, ptr %.omp.ub, ptr %.omp.stride, i32 1, i32 1)
+```
+If the upper bound is outside of the loop iteration bound, the thread will go to label `cond.end`.
+```llvm
   %5 = load i32, ptr %.omp.ub, align 4
   %cmp = icmp sgt i32 %5, 1048575
   br i1 %cmp, label %cond.true, label %cond.false
@@ -102,14 +109,18 @@ cond.true:                                        ; preds = %entry
 cond.false:                                       ; preds = %entry
   %6 = load i32, ptr %.omp.ub, align 4
   br label %cond.end
-
+```
+The phi instruction selects a value based on the predecessor of the current block. If the thread came from `cond.true`, the global upper bound is set used as the upper bound. Otherwise, the local upper bound computed with `__kmp_for static_init_4()` is used.
+```llvm
 cond.end:                                         ; preds = %cond.false, %cond.true
   %cond = phi i32 [ 1048575, %cond.true ], [ %6, %cond.false ]
   store i32 %cond, ptr %.omp.ub, align 4
   %7 = load i32, ptr %.omp.lb, align 4
   store i32 %7, ptr %.omp.iv, align 4
   br label %omp.inner.for.cond
-
+```
+If the loop counter is smaller than or equal to the thread's upper bound, the loop iteration is reiterated. Else, the thread goes to `%omp.inner.for.end` and thereby `%omp.loop.exit`.
+```llvm
 omp.inner.for.cond:                               ; preds = %omp.inner.for.inc, %cond.end
   %8 = load i32, ptr %.omp.iv, align 4
   %9 = load i32, ptr %.omp.ub, align 4
@@ -122,6 +133,9 @@ omp.inner.for.body:                               ; preds = %omp.inner.for.cond
   %add = add nsw i32 0, %mul
   store i32 %add, ptr %i, align 4
   %11 = load ptr, ptr %1, align 8
+```
+The loopcounter `i` is extended to a 64 bit integer. Then the the index `%idxprom3` is added to the address of the array, `%13`, which contains the base pointer for the array, `%1`.
+```llvm
   %12 = load i32, ptr %i, align 4
   %idxprom = sext i32 %12 to i64
   %arrayidx = getelementptr inbounds double, ptr %11, i64 %idxprom
@@ -130,6 +144,9 @@ omp.inner.for.body:                               ; preds = %omp.inner.for.cond
   %14 = load i32, ptr %i, align 4
   %idxprom3 = sext i32 %14 to i64
   %arrayidx4 = getelementptr inbounds double, ptr %13, i64 %idxprom3
+```
+The value of the loop iteration is added to the local version of `sum`, `sum1`.
+```llvm
   %15 = load double, ptr %arrayidx4, align 8
   %16 = load double, ptr %sum1, align 8
   %add5 = fadd double %16, %15
@@ -147,11 +164,16 @@ omp.inner.for.inc:                                ; preds = %omp.body.continue
 
 omp.inner.for.end:                                ; preds = %omp.inner.for.cond
   br label %omp.loop.exit
-
+```
+In `%omp.loop.exit` the thread local sums are added together into the global reduction.
+```llvm
 omp.loop.exit:                                    ; preds = %omp.inner.for.end
   call void @__kmpc_for_static_fini(ptr @1, i32 %4)
   %18 = getelementptr inbounds [1 x ptr], ptr %.omp.reduction.red_list, i64 0, i64 0
   store ptr %sum1, ptr %18, align 8
+```
+Depending on the output from `__kmpc_reduce_nowait()` stored in `%19`, the thread private result is added to the global sum with atomics in label `omp.reduction.case2`.
+```llvm
   %19 = call i32 @__kmpc_reduce_nowait(ptr @2, i32 %4, i32 1, i64 8, ptr %.omp.reduction.red_list, ptr @main.omp_outlined.omp.reduction.reduction_func, ptr @.gomp_critical_user_.reduction.var)
   switch i32 %19, label %.omp.reduction.default [
     i32 1, label %.omp.reduction.case1
@@ -173,7 +195,7 @@ omp.loop.exit:                                    ; preds = %omp.inner.for.end
 
 .omp.reduction.default:                           ; preds = %.omp.reduction.case2, %.omp.reduction.case1, %omp.loop.exit
   ret void
-}
+} ; EXITS OMP OUTLINED
 
 declare void @__kmpc_for_static_init_4(ptr, i32, i32, ptr, ptr, ptr, ptr, i32, i32)
 
@@ -306,8 +328,14 @@ define void @_QQmain() {
   store i32 1048576, ptr %7, align 4
   %9 = load i32, ptr %7, align 4
   %10 = sext i32 %9 to i64
+```
+Verifying that the array length is a non-negative number.
+```llvm
   %11 = icmp sgt i64 %10, 0
   %12 = select i1 %11, i64 %10, i64 0
+```
+Allocating array with `malloc`. `ptrtoint` and `inttoptr` are used because non-integral pointers are used. 
+```llvm
   %13 = mul i64 ptrtoint (ptr getelementptr (double, ptr null, i32 1) to i64), %12
   %14 = call ptr @malloc(i64 %13)
   %15 = insertvalue { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] } { ptr undef, i64 ptrtoint (ptr getelementptr (double, ptr null, i32 1) to i64), i32 20180515, i8 1, i8 28, i8 2, i8 0, [1 x [3 x i64]] [[3 x i64] [i64 1, i64 undef, i64 undef]] }, i64 %12, 7, 0, 1
@@ -318,9 +346,14 @@ define void @_QQmain() {
   store { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] } %19, ptr %5, align 8
   %20 = load { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %5, align 8
   store { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] } %20, ptr @_QFEarr, align 8
+```
+Initializing the result to 0
+```llvm
   store double 0.000000e+00, ptr %8, align 8
   br label %entry
-
+```
+The inititial thread gets its global thread number before forking. That is not the case for the `clang` version.
+```llvm
 entry:                                            ; preds = %0
   %omp_global_thread_num = call i32 @__kmpc_global_thread_num(ptr @1)
   br label %omp_parallel
@@ -336,7 +369,9 @@ omp_parallel:                                     ; preds = %entry
   store ptr %3, ptr %gep_9, align 8
   call void (ptr, i32, ptr, ...) @__kmpc_fork_call(ptr @1, i32 1, ptr @_QQmain..omp_par, ptr %structArg)
   br label %omp.par.outlined.exit
-
+```
+The control flow is completely different for `flang`. After the parallel region, the initial thread goes on to print the result in `%omp.par.exit.split` redirected via `%omp.par.outlined.exit`.
+```llvm
 omp.par.outlined.exit:                            ; preds = %omp_parallel
   br label %omp.par.exit.split
 
@@ -359,7 +394,9 @@ omp.par.exit.split:                               ; preds = %omp.par.outlined.ex
   store { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] } %32, ptr @_QFEarr, align 8
   ret void
 }
-
+```
+The following function is called by `__kmpc_fork_call()`. 
+```llvm
 ; Function Attrs: norecurse nounwind
 define internal void @_QQmain..omp_par(ptr noalias %tid.addr, ptr noalias %zero.addr, ptr %0) #0 {
 omp.par.entry:
@@ -404,6 +441,9 @@ omp_loop.preheader:                               ; preds = %omp.par.region1
   %11 = sub i32 %omp_loop.tripcount, 1
   store i32 %11, ptr %p.upperbound, align 4
   store i32 1, ptr %p.stride, align 4
+```
+The loop bounds are statically computed with `__kmpc_for_static_init_4u()`.
+```
   %omp_global_thread_num3 = call i32 @__kmpc_global_thread_num(ptr @1)
   call void @__kmpc_for_static_init_4u(ptr @1, i32 %omp_global_thread_num3, i32 34, ptr %p.lastiter, ptr %p.lowerbound, ptr %p.upperbound, ptr %p.stride, i32 1, i32 0)
   %12 = load i32, ptr %p.lowerbound, align 4
@@ -425,7 +465,9 @@ omp_loop.exit:                                    ; preds = %omp_loop.cond
   %omp_global_thread_num4 = call i32 @__kmpc_global_thread_num(ptr @1)
   call void @__kmpc_barrier(ptr @2, i32 %omp_global_thread_num4)
   br label %omp_loop.after
-
+```
+Again, `__kmpc_reduce` is used to switch atomic operations on or off.
+```llvm
 omp_loop.after:                                   ; preds = %omp_loop.exit
   %red.array.elem.0 = getelementptr inbounds [1 x ptr], ptr %red.array, i64 0, i64 0
   store ptr %2, ptr %red.array.elem.0, align 8
@@ -463,7 +505,9 @@ omp_loop.body:                                    ; preds = %omp_loop.cond
   %18 = mul i32 %17, 1
   %19 = add i32 %18, 1
   br label %omp.wsloop.region
-
+```
+What is the purpose of the following section?
+```llvm
 omp.wsloop.region:                                ; preds = %omp_loop.body
   store i32 %19, ptr %3, align 4
   %20 = load i32, ptr %loadgep_, align 4
