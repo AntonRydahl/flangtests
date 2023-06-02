@@ -623,3 +623,478 @@ attributes #3 = { convergent nounwind }
 !4 = !{!5}
 !5 = !{i64 2, i64 -1, i64 -1, i1 true}
 ```
+; ModuleID = 'src/loop_reduction.c'
+source_filename = "src/loop_reduction.c"
+target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+target triple = "x86_64-unknown-linux-gnu"
+
+%struct.ident_t = type { i32, i32, i32, i32, ptr }
+
+@0 = private unnamed_addr constant [23 x i8] c";unknown;unknown;0;0;;\00", align 1
+@1 = private unnamed_addr constant %struct.ident_t { i32 0, i32 514, i32 0, i32 22, ptr @0 }, align 8
+@.gomp_critical_user_.reduction.var = common global [8 x i32] zeroinitializer, align 8
+@2 = private unnamed_addr constant %struct.ident_t { i32 0, i32 18, i32 0, i32 22, ptr @0 }, align 8
+@3 = private unnamed_addr constant %struct.ident_t { i32 0, i32 2, i32 0, i32 22, ptr @0 }, align 8
+@.str = private unnamed_addr constant [40 x i8] c"The result of sum(arr[0:%d]) is %1.9lf\0A\00", align 1
+
+; Function Attrs: nounwind
+define dso_local i32 @main() local_unnamed_addr #0 {
+entry:
+  %length = alloca i32, align 4
+  %arr = alloca ptr, align 8
+  %sum = alloca double, align 8
+  call void @llvm.lifetime.start.p0(i64 4, ptr nonnull %length) #4
+  store i32 1048576, ptr %length, align 4, !tbaa !5
+  call void @llvm.lifetime.start.p0(i64 8, ptr nonnull %arr) #4
+  %call = tail call noalias dereferenceable_or_null(8388608) ptr @malloc(i64 noundef 8388608) #10
+  store ptr %call, ptr %arr, align 8, !tbaa !9
+  call void @llvm.lifetime.start.p0(i64 8, ptr nonnull %sum) #4
+  store double 0.000000e+00, ptr %sum, align 8, !tbaa !11
+  call void (ptr, i32, ptr, ...) @__kmpc_fork_call(ptr nonnull @3, i32 3, ptr nonnull @main.omp_outlined, ptr nonnull %length, ptr nonnull %arr, ptr nonnull %sum)
+  %0 = load double, ptr %sum, align 8, !tbaa !11
+  %call1 = call i32 (ptr, ...) @printf(ptr noundef nonnull dereferenceable(1) @.str, i32 noundef 1048575, double noundef %0)
+  %1 = load ptr, ptr %arr, align 8, !tbaa !9
+  call void @free(ptr noundef %1) #4
+  call void @llvm.lifetime.end.p0(i64 8, ptr nonnull %sum) #4
+  call void @llvm.lifetime.end.p0(i64 8, ptr nonnull %arr) #4
+  call void @llvm.lifetime.end.p0(i64 4, ptr nonnull %length) #4
+  ret i32 0
+}
+
+; Function Attrs: mustprogress nocallback nofree nosync nounwind willreturn memory(argmem: readwrite)
+declare void @llvm.lifetime.start.p0(i64 immarg, ptr nocapture) #1
+
+; Function Attrs: mustprogress nofree nounwind willreturn allockind("alloc,uninitialized") allocsize(0) memory(inaccessiblemem: readwrite)
+declare noalias noundef ptr @malloc(i64 noundef) local_unnamed_addr #2
+
+; Function Attrs: alwaysinline norecurse nounwind
+define internal void @main.omp_outlined(ptr noalias nocapture noundef readonly %.global_tid., ptr noalias nocapture readnone %.bound_tid., ptr nocapture nonnull readnone align 4 %length, ptr nocapture noundef nonnull readonly align 8 dereferenceable(8) %arr, ptr nocapture noundef nonnull align 8 dereferenceable(8) %sum) #3 {
+entry:
+  %.omp.lb = alloca i32, align 4
+  %.omp.ub = alloca i32, align 4
+  %.omp.stride = alloca i32, align 4
+  %.omp.is_last = alloca i32, align 4
+  %sum1 = alloca double, align 8
+  %.omp.reduction.red_list = alloca [1 x ptr], align 8
+  call void @llvm.lifetime.start.p0(i64 4, ptr nonnull %.omp.lb) #4
+  store i32 0, ptr %.omp.lb, align 4, !tbaa !5
+  call void @llvm.lifetime.start.p0(i64 4, ptr nonnull %.omp.ub) #4
+  store i32 1048575, ptr %.omp.ub, align 4, !tbaa !5
+  call void @llvm.lifetime.start.p0(i64 4, ptr nonnull %.omp.stride) #4
+  store i32 1, ptr %.omp.stride, align 4, !tbaa !5
+  call void @llvm.lifetime.start.p0(i64 4, ptr nonnull %.omp.is_last) #4
+  store i32 0, ptr %.omp.is_last, align 4, !tbaa !5
+  call void @llvm.lifetime.start.p0(i64 8, ptr nonnull %sum1) #4
+  store double 0.000000e+00, ptr %sum1, align 8, !tbaa !11
+  %0 = load i32, ptr %.global_tid., align 4, !tbaa !5
+  call void @__kmpc_for_static_init_4(ptr nonnull @1, i32 %0, i32 34, ptr nonnull %.omp.is_last, ptr nonnull %.omp.lb, ptr nonnull %.omp.ub, ptr nonnull %.omp.stride, i32 1, i32 1)
+  %1 = load i32, ptr %.omp.ub, align 4
+  %cond = call i32 @llvm.smin.i32(i32 %1, i32 1048575)
+  store i32 %cond, ptr %.omp.ub, align 4, !tbaa !5
+  %2 = load i32, ptr %.omp.lb, align 4, !tbaa !5
+  %cmp2.not11 = icmp slt i32 %cond, %2
+  br i1 %cmp2.not11, label %omp.loop.exit, label %omp.inner.for.body.lr.ph
+
+omp.inner.for.body.lr.ph:                         ; preds = %entry
+  %3 = load ptr, ptr %arr, align 8, !tbaa !9
+  %4 = sext i32 %2 to i64
+  %5 = add nsw i32 %cond, 1
+  %6 = add nsw i32 %cond, 1
+  %7 = sub i32 %6, %2
+  %8 = sub i32 %cond, %2
+  %xtraiter = and i32 %7, 3
+  %lcmp.mod.not = icmp eq i32 %xtraiter, 0
+  br i1 %lcmp.mod.not, label %omp.inner.for.body.prol.loopexit, label %omp.inner.for.body.prol
+
+omp.inner.for.body.prol:                          ; preds = %omp.inner.for.body.lr.ph, %omp.inner.for.body.prol
+  %indvars.iv.prol = phi i64 [ %indvars.iv.next.prol, %omp.inner.for.body.prol ], [ %4, %omp.inner.for.body.lr.ph ]
+  %prol.iter = phi i32 [ %prol.iter.next, %omp.inner.for.body.prol ], [ 0, %omp.inner.for.body.lr.ph ]
+  %arrayidx.prol = getelementptr inbounds double, ptr %3, i64 %indvars.iv.prol
+  store double 0x3EB0000000000000, ptr %arrayidx.prol, align 8, !tbaa !11
+  %9 = load double, ptr %sum1, align 8, !tbaa !11
+  %add5.prol = fadd double %9, 0x3EB0000000000000
+  store double %add5.prol, ptr %sum1, align 8, !tbaa !11
+  %indvars.iv.next.prol = add nsw i64 %indvars.iv.prol, 1
+  %prol.iter.next = add i32 %prol.iter, 1
+  %prol.iter.cmp.not = icmp eq i32 %prol.iter.next, %xtraiter
+  br i1 %prol.iter.cmp.not, label %omp.inner.for.body.prol.loopexit, label %omp.inner.for.body.prol, !llvm.loop !13
+
+omp.inner.for.body.prol.loopexit:                 ; preds = %omp.inner.for.body.prol, %omp.inner.for.body.lr.ph
+  %indvars.iv.unr = phi i64 [ %4, %omp.inner.for.body.lr.ph ], [ %indvars.iv.next.prol, %omp.inner.for.body.prol ]
+  %10 = icmp ult i32 %8, 3
+  br i1 %10, label %omp.loop.exit, label %omp.inner.for.body
+
+omp.inner.for.body:                               ; preds = %omp.inner.for.body.prol.loopexit, %omp.inner.for.body
+  %indvars.iv = phi i64 [ %indvars.iv.next.3, %omp.inner.for.body ], [ %indvars.iv.unr, %omp.inner.for.body.prol.loopexit ]
+  %arrayidx = getelementptr inbounds double, ptr %3, i64 %indvars.iv
+  store double 0x3EB0000000000000, ptr %arrayidx, align 8, !tbaa !11
+  %11 = load double, ptr %sum1, align 8, !tbaa !11
+  %add5 = fadd double %11, 0x3EB0000000000000
+  store double %add5, ptr %sum1, align 8, !tbaa !11
+  %indvars.iv.next = add nsw i64 %indvars.iv, 1
+  %arrayidx.1 = getelementptr inbounds double, ptr %3, i64 %indvars.iv.next
+  store double 0x3EB0000000000000, ptr %arrayidx.1, align 8, !tbaa !11
+  %12 = load double, ptr %sum1, align 8, !tbaa !11
+  %add5.1 = fadd double %12, 0x3EB0000000000000
+  store double %add5.1, ptr %sum1, align 8, !tbaa !11
+  %indvars.iv.next.1 = add nsw i64 %indvars.iv, 2
+  %arrayidx.2 = getelementptr inbounds double, ptr %3, i64 %indvars.iv.next.1
+  store double 0x3EB0000000000000, ptr %arrayidx.2, align 8, !tbaa !11
+  %13 = load double, ptr %sum1, align 8, !tbaa !11
+  %add5.2 = fadd double %13, 0x3EB0000000000000
+  store double %add5.2, ptr %sum1, align 8, !tbaa !11
+  %indvars.iv.next.2 = add nsw i64 %indvars.iv, 3
+  %arrayidx.3 = getelementptr inbounds double, ptr %3, i64 %indvars.iv.next.2
+  store double 0x3EB0000000000000, ptr %arrayidx.3, align 8, !tbaa !11
+  %14 = load double, ptr %sum1, align 8, !tbaa !11
+  %add5.3 = fadd double %14, 0x3EB0000000000000
+  store double %add5.3, ptr %sum1, align 8, !tbaa !11
+  %indvars.iv.next.3 = add nsw i64 %indvars.iv, 4
+  %lftr.wideiv.3 = trunc i64 %indvars.iv.next.3 to i32
+  %exitcond.not.3 = icmp eq i32 %5, %lftr.wideiv.3
+  br i1 %exitcond.not.3, label %omp.loop.exit, label %omp.inner.for.body
+
+omp.loop.exit:                                    ; preds = %omp.inner.for.body.prol.loopexit, %omp.inner.for.body, %entry
+  call void @__kmpc_for_static_fini(ptr nonnull @1, i32 %0)
+  store ptr %sum1, ptr %.omp.reduction.red_list, align 8
+  %15 = call i32 @__kmpc_reduce_nowait(ptr nonnull @2, i32 %0, i32 1, i64 8, ptr nonnull %.omp.reduction.red_list, ptr nonnull @main.omp_outlined.omp.reduction.reduction_func, ptr nonnull @.gomp_critical_user_.reduction.var)
+  switch i32 %15, label %.omp.reduction.default [
+    i32 1, label %.omp.reduction.case1
+    i32 2, label %.omp.reduction.case2
+  ]
+
+.omp.reduction.case1:                             ; preds = %omp.loop.exit
+  %16 = load double, ptr %sum, align 8, !tbaa !11
+  %17 = load double, ptr %sum1, align 8, !tbaa !11
+  %add7 = fadd double %16, %17
+  store double %add7, ptr %sum, align 8, !tbaa !11
+  call void @__kmpc_end_reduce_nowait(ptr nonnull @2, i32 %0, ptr nonnull @.gomp_critical_user_.reduction.var)
+  br label %.omp.reduction.default
+
+.omp.reduction.case2:                             ; preds = %omp.loop.exit
+  %18 = load double, ptr %sum1, align 8, !tbaa !11
+  %19 = atomicrmw fadd ptr %sum, double %18 monotonic, align 8
+  br label %.omp.reduction.default
+
+.omp.reduction.default:                           ; preds = %.omp.reduction.case2, %.omp.reduction.case1, %omp.loop.exit
+  call void @llvm.lifetime.end.p0(i64 8, ptr nonnull %sum1) #4
+  call void @llvm.lifetime.end.p0(i64 4, ptr nonnull %.omp.is_last) #4
+  call void @llvm.lifetime.end.p0(i64 4, ptr nonnull %.omp.stride) #4
+  call void @llvm.lifetime.end.p0(i64 4, ptr nonnull %.omp.ub) #4
+  call void @llvm.lifetime.end.p0(i64 4, ptr nonnull %.omp.lb) #4
+  ret void
+}
+
+; Function Attrs: nounwind
+declare void @__kmpc_for_static_init_4(ptr, i32, i32, ptr, ptr, ptr, ptr, i32, i32) local_unnamed_addr #4
+
+; Function Attrs: nounwind
+declare void @__kmpc_for_static_fini(ptr, i32) local_unnamed_addr #4
+
+; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none)
+define internal void @main.omp_outlined.omp.reduction.reduction_func(ptr nocapture noundef readonly %0, ptr nocapture noundef readonly %1) #5 {
+entry:
+  %2 = load ptr, ptr %1, align 8
+  %3 = load ptr, ptr %0, align 8
+  %4 = load double, ptr %3, align 8, !tbaa !11
+  %5 = load double, ptr %2, align 8, !tbaa !11
+  %add = fadd double %4, %5
+  store double %add, ptr %3, align 8, !tbaa !11
+  ret void
+}
+
+; Function Attrs: convergent nounwind
+declare i32 @__kmpc_reduce_nowait(ptr, i32, i32, i64, ptr, ptr, ptr) local_unnamed_addr #6
+
+; Function Attrs: convergent nounwind
+declare void @__kmpc_end_reduce_nowait(ptr, i32, ptr) local_unnamed_addr #6
+
+; Function Attrs: mustprogress nocallback nofree nosync nounwind willreturn memory(argmem: readwrite)
+declare void @llvm.lifetime.end.p0(i64 immarg, ptr nocapture) #1
+
+; Function Attrs: nounwind
+declare !callback !15 void @__kmpc_fork_call(ptr, i32, ptr, ...) local_unnamed_addr #4
+
+; Function Attrs: nofree nounwind
+declare noundef i32 @printf(ptr nocapture noundef readonly, ...) local_unnamed_addr #7
+
+; Function Attrs: mustprogress nounwind willreturn allockind("free") memory(argmem: readwrite, inaccessiblemem: readwrite)
+declare void @free(ptr allocptr nocapture noundef) local_unnamed_addr #8
+
+; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
+declare i32 @llvm.smin.i32(i32, i32) #9
+
+attributes #0 = { nounwind "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #1 = { mustprogress nocallback nofree nosync nounwind willreturn memory(argmem: readwrite) }
+attributes #2 = { mustprogress nofree nounwind willreturn allockind("alloc,uninitialized") allocsize(0) memory(inaccessiblemem: readwrite) "alloc-family"="malloc" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #3 = { alwaysinline norecurse nounwind "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #4 = { nounwind }
+attributes #5 = { mustprogress nofree norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none) "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #6 = { convergent nounwind }
+attributes #7 = { nofree nounwind "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #8 = { mustprogress nounwind willreturn allockind("free") memory(argmem: readwrite, inaccessiblemem: readwrite) "alloc-family"="malloc" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #9 = { nocallback nofree nosync nounwind speculatable willreturn memory(none) }
+attributes #10 = { nounwind allocsize(0) }
+
+!llvm.module.flags = !{!0, !1, !2, !3}
+!llvm.ident = !{!4}
+
+!0 = !{i32 1, !"wchar_size", i32 4}
+!1 = !{i32 7, !"openmp", i32 50}
+!2 = !{i32 8, !"PIC Level", i32 2}
+!3 = !{i32 7, !"PIE Level", i32 2}
+!4 = !{!"clang version 17.0.0 (https://github.com/llvm/llvm-project.git 2e4e218474320abf480c39d3b968a5a09477ad03)"}
+!5 = !{!6, !6, i64 0}
+!6 = !{!"int", !7, i64 0}
+!7 = !{!"omnipotent char", !8, i64 0}
+!8 = !{!"Simple C/C++ TBAA"}
+!9 = !{!10, !10, i64 0}
+!10 = !{!"any pointer", !7, i64 0}
+!11 = !{!12, !12, i64 0}
+!12 = !{!"double", !7, i64 0}
+!13 = distinct !{!13, !14}
+!14 = !{!"llvm.loop.unroll.disable"}
+!15 = !{!16}
+!16 = !{i64 2, i64 -1, i64 -1, i1 true}
+; ModuleID = 'FIRModule'
+source_filename = "FIRModule"
+target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+target triple = "x86_64-unknown-linux-gnu"
+
+%struct.ident_t = type { i32, i32, i32, i32, ptr }
+
+@_QFEarr.0 = internal unnamed_addr global ptr null
+@_QFEarr.8 = internal unnamed_addr global i1 false
+@_QQcl.1c24fad2427fba85941c2f07b505b42a = internal constant [49 x i8] c"/g/g92/rydahl1/flangtests/src/loop_reduction.f90\00"
+@_QQcl.28612C69372C612C6531332E36653229 = internal constant [16 x i8] c"(a,i7,a,e13.6e2)"
+@_QQcl.54686520726573756C74206F662073756D2861727228313A = internal constant [24 x i8] c"The result of sum(arr(1:"
+@_QQcl.292920697320 = internal constant [6 x i8] c")) is "
+@_QQEnvironmentDefaults = local_unnamed_addr constant ptr null
+@0 = private unnamed_addr constant [23 x i8] c";unknown;unknown;0;0;;\00", align 1
+@1 = private unnamed_addr constant %struct.ident_t { i32 0, i32 2, i32 0, i32 22, ptr @0 }, align 8
+@2 = private unnamed_addr constant %struct.ident_t { i32 0, i32 66, i32 0, i32 22, ptr @0 }, align 8
+@.gomp_critical_user_.reduction.var = common global [8 x i32] zeroinitializer, align 4
+
+; Function Attrs: mustprogress nofree nounwind willreturn allockind("alloc,uninitialized") allocsize(0) memory(inaccessiblemem: readwrite)
+declare noalias noundef ptr @malloc(i64 noundef) local_unnamed_addr #0
+
+; Function Attrs: mustprogress nounwind willreturn allockind("free") memory(argmem: readwrite, inaccessiblemem: readwrite)
+declare void @free(ptr allocptr nocapture noundef) local_unnamed_addr #1
+
+define void @_QQmain() local_unnamed_addr {
+entry:
+  %structArg = alloca { ptr, ptr, ptr, ptr }, align 8
+  %0 = alloca { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, align 8
+  %1 = alloca { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, align 8
+  %2 = alloca i32, align 4
+  %3 = alloca double, align 8
+  store i32 1048576, ptr %2, align 4, !tbaa !4
+  %4 = tail call dereferenceable_or_null(8388608) ptr @malloc(i64 8388608)
+  store ptr %4, ptr @_QFEarr.0, align 8, !tbaa !8
+  store i1 true, ptr @_QFEarr.8, align 1
+  store double 0.000000e+00, ptr %3, align 8, !tbaa !4
+  %omp_global_thread_num = tail call i32 @__kmpc_global_thread_num(ptr nonnull @1)
+  store ptr %2, ptr %structArg, align 8
+  %gep_7 = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %structArg, i64 0, i32 1
+  store ptr %3, ptr %gep_7, align 8
+  %gep_8 = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %structArg, i64 0, i32 2
+  store ptr %1, ptr %gep_8, align 8
+  %gep_9 = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %structArg, i64 0, i32 3
+  store ptr %0, ptr %gep_9, align 8
+  call void (ptr, i32, ptr, ...) @__kmpc_fork_call(ptr nonnull @1, i32 1, ptr nonnull @_QQmain..omp_par, ptr nonnull %structArg)
+  %5 = call ptr @_FortranAioBeginExternalFormattedOutput(ptr nonnull @_QQcl.28612C69372C612C6531332E36653229, i64 16, ptr null, i32 -1, ptr nonnull @_QQcl.1c24fad2427fba85941c2f07b505b42a, i32 21)
+  %6 = call i1 @_FortranAioOutputAscii(ptr %5, ptr nonnull @_QQcl.54686520726573756C74206F662073756D2861727228313A, i64 24)
+  %7 = load i32, ptr %2, align 4, !tbaa !4
+  %8 = call i1 @_FortranAioOutputInteger32(ptr %5, i32 %7)
+  %9 = call i1 @_FortranAioOutputAscii(ptr %5, ptr nonnull @_QQcl.292920697320, i64 6)
+  %10 = load double, ptr %3, align 8, !tbaa !4
+  %11 = call i1 @_FortranAioOutputReal64(ptr %5, double %10)
+  %12 = call i32 @_FortranAioEndIoStatement(ptr %5)
+  %.unpack = load ptr, ptr @_QFEarr.0, align 8, !tbaa !8
+  call void @free(ptr %.unpack)
+  store ptr null, ptr @_QFEarr.0, align 8, !tbaa !8
+  store i1 false, ptr @_QFEarr.8, align 1
+  ret void
+}
+
+; Function Attrs: norecurse nounwind
+define internal void @_QQmain..omp_par(ptr noalias nocapture readnone %tid.addr, ptr noalias nocapture readnone %zero.addr, ptr nocapture readonly %0) #2 {
+omp.par.entry:
+  %loadgep_ = load ptr, ptr %0, align 8
+  %gep_1 = getelementptr { ptr, ptr, ptr, ptr }, ptr %0, i64 0, i32 1
+  %loadgep_2 = load ptr, ptr %gep_1, align 8
+  %gep_3 = getelementptr { ptr, ptr, ptr, ptr }, ptr %0, i64 0, i32 2
+  %loadgep_4 = load ptr, ptr %gep_3, align 8
+  %gep_5 = getelementptr { ptr, ptr, ptr, ptr }, ptr %0, i64 0, i32 3
+  %loadgep_6 = load ptr, ptr %gep_5, align 8
+  %1 = alloca double, align 8
+  %p.lastiter = alloca i32, align 4
+  %p.lowerbound = alloca i32, align 4
+  %p.upperbound = alloca i32, align 4
+  %p.stride = alloca i32, align 4
+  %red.array = alloca [1 x ptr], align 8
+  %2 = load i32, ptr %loadgep_, align 4, !tbaa !4
+  store double 0.000000e+00, ptr %1, align 8
+  %omp_loop.tripcount = tail call i32 @llvm.smax.i32(i32 %2, i32 0)
+  store i32 0, ptr %p.lowerbound, align 4
+  %3 = add nsw i32 %omp_loop.tripcount, -1
+  store i32 %3, ptr %p.upperbound, align 4
+  store i32 1, ptr %p.stride, align 4
+  %omp_global_thread_num6 = tail call i32 @__kmpc_global_thread_num(ptr nonnull @1)
+  call void @__kmpc_for_static_init_4u(ptr nonnull @1, i32 %omp_global_thread_num6, i32 34, ptr nonnull %p.lastiter, ptr nonnull %p.lowerbound, ptr nonnull %p.upperbound, ptr nonnull %p.stride, i32 1, i32 0)
+  %4 = load i32, ptr %p.lowerbound, align 4
+  %5 = load i32, ptr %p.upperbound, align 4
+  %reass.sub = sub i32 %5, %4
+  %omp_loop.cmp67.not = icmp eq i32 %reass.sub, -1
+  br i1 %omp_loop.cmp67.not, label %omp_loop.exit, label %omp_loop.body.lr.ph
+
+omp_loop.body.lr.ph:                              ; preds = %omp.par.entry
+  %.unpack = load ptr, ptr @_QFEarr.0, align 8, !tbaa !8
+  %.unpack14.unpack.unpack16.b = load i1, ptr @_QFEarr.8, align 1
+  %.unpack14.unpack.unpack16 = select i1 %.unpack14.unpack.unpack16.b, i64 1048576, i64 0
+  %loadgep_4.repack19 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_4, i64 0, i32 1
+  %loadgep_4.repack21 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_4, i64 0, i32 2
+  %loadgep_4.repack23 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_4, i64 0, i32 3
+  %loadgep_4.repack25 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_4, i64 0, i32 4
+  %loadgep_4.repack27 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_4, i64 0, i32 5
+  %loadgep_4.repack29 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_4, i64 0, i32 6
+  %loadgep_4.repack31 = getelementptr { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_4, i64 0, i32 7
+  %loadgep_4.repack31.repack33 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_4, i64 0, i32 7, i64 0, i64 1
+  %loadgep_4.repack31.repack35 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_4, i64 0, i32 7, i64 0, i64 2
+  %loadgep_6.repack49 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_6, i64 0, i32 1
+  %loadgep_6.repack51 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_6, i64 0, i32 2
+  %loadgep_6.repack53 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_6, i64 0, i32 3
+  %loadgep_6.repack55 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_6, i64 0, i32 4
+  %loadgep_6.repack57 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_6, i64 0, i32 5
+  %loadgep_6.repack59 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_6, i64 0, i32 6
+  %loadgep_6.repack61 = getelementptr { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_6, i64 0, i32 7
+  %loadgep_6.repack61.repack63 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_6, i64 0, i32 7, i64 0, i64 1
+  %loadgep_6.repack61.repack65 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_6, i64 0, i32 7, i64 0, i64 2
+  br label %omp_loop.body
+
+omp_loop.exit:                                    ; preds = %omp_loop.body, %omp.par.entry
+  call void @__kmpc_for_static_fini(ptr nonnull @1, i32 %omp_global_thread_num6)
+  call void @__kmpc_barrier(ptr nonnull @2, i32 %omp_global_thread_num6)
+  store ptr %1, ptr %red.array, align 8
+  %reduce = call i32 @__kmpc_reduce(ptr nonnull @1, i32 %omp_global_thread_num6, i32 1, i64 8, ptr nonnull %red.array, ptr nonnull @.omp.reduction.func, ptr nonnull @.gomp_critical_user_.reduction.var)
+  %cond = icmp eq i32 %reduce, 1
+  br i1 %cond, label %reduce.switch.nonatomic, label %reduce.finalize
+
+reduce.switch.nonatomic:                          ; preds = %omp_loop.exit
+  %red.value.0 = load double, ptr %loadgep_2, align 8
+  %red.private.value.0 = load double, ptr %1, align 8
+  %6 = fadd contract double %red.value.0, %red.private.value.0
+  store double %6, ptr %loadgep_2, align 8
+  call void @__kmpc_end_reduce(ptr nonnull @1, i32 %omp_global_thread_num6, ptr nonnull @.gomp_critical_user_.reduction.var)
+  br label %reduce.finalize
+
+reduce.finalize:                                  ; preds = %omp_loop.exit, %reduce.switch.nonatomic
+  call void @__kmpc_barrier(ptr nonnull @2, i32 %omp_global_thread_num6)
+  ret void
+
+omp_loop.body:                                    ; preds = %omp_loop.body.lr.ph, %omp_loop.body
+  %omp_loop.iv68 = phi i32 [ 0, %omp_loop.body.lr.ph ], [ %7, %omp_loop.body ]
+  %7 = add nuw i32 %omp_loop.iv68, 1
+  %8 = add i32 %7, %4
+  %9 = load i32, ptr %loadgep_, align 4, !tbaa !4
+  %10 = sitofp i32 %9 to float
+  %11 = fdiv contract float 1.000000e+00, %10
+  %12 = fpext float %11 to double
+  store ptr %.unpack, ptr %loadgep_4, align 8, !tbaa !8
+  store i64 8, ptr %loadgep_4.repack19, align 8, !tbaa !8
+  store i32 20180515, ptr %loadgep_4.repack21, align 8, !tbaa !8
+  store i8 1, ptr %loadgep_4.repack23, align 4, !tbaa !8
+  store i8 28, ptr %loadgep_4.repack25, align 1, !tbaa !8
+  store i8 2, ptr %loadgep_4.repack27, align 2, !tbaa !8
+  store i8 0, ptr %loadgep_4.repack29, align 1, !tbaa !8
+  store i64 1, ptr %loadgep_4.repack31, align 8, !tbaa !8
+  store i64 %.unpack14.unpack.unpack16, ptr %loadgep_4.repack31.repack33, align 8, !tbaa !8
+  store i64 8, ptr %loadgep_4.repack31.repack35, align 8, !tbaa !8
+  %13 = sext i32 %8 to i64
+  %14 = add nsw i64 %13, -1
+  %15 = getelementptr double, ptr %.unpack, i64 %14
+  store double %12, ptr %15, align 8, !tbaa !4
+  store ptr %.unpack, ptr %loadgep_6, align 8, !tbaa !8
+  store i64 8, ptr %loadgep_6.repack49, align 8, !tbaa !8
+  store i32 20180515, ptr %loadgep_6.repack51, align 8, !tbaa !8
+  store i8 1, ptr %loadgep_6.repack53, align 4, !tbaa !8
+  store i8 28, ptr %loadgep_6.repack55, align 1, !tbaa !8
+  store i8 2, ptr %loadgep_6.repack57, align 2, !tbaa !8
+  store i8 0, ptr %loadgep_6.repack59, align 1, !tbaa !8
+  store i64 1, ptr %loadgep_6.repack61, align 8, !tbaa !8
+  store i64 %.unpack14.unpack.unpack16, ptr %loadgep_6.repack61.repack63, align 8, !tbaa !8
+  store i64 8, ptr %loadgep_6.repack61.repack65, align 8, !tbaa !8
+  %16 = load double, ptr %1, align 8
+  %17 = fadd contract double %16, %12
+  store double %17, ptr %1, align 8
+  %exitcond.not = icmp eq i32 %omp_loop.iv68, %reass.sub
+  br i1 %exitcond.not, label %omp_loop.exit, label %omp_loop.body
+}
+
+declare ptr @_FortranAioBeginExternalFormattedOutput(ptr, i64, ptr, i32, ptr, i32) local_unnamed_addr
+
+declare zeroext i1 @_FortranAioOutputAscii(ptr, ptr, i64) local_unnamed_addr
+
+declare zeroext i1 @_FortranAioOutputInteger32(ptr, i32) local_unnamed_addr
+
+declare zeroext i1 @_FortranAioOutputReal64(ptr, double) local_unnamed_addr
+
+declare i32 @_FortranAioEndIoStatement(ptr) local_unnamed_addr
+
+; Function Attrs: nounwind
+declare i32 @__kmpc_global_thread_num(ptr) local_unnamed_addr #3
+
+; Function Attrs: nounwind
+declare void @__kmpc_for_static_init_4u(ptr, i32, i32, ptr, ptr, ptr, ptr, i32, i32) local_unnamed_addr #3
+
+; Function Attrs: nounwind
+declare void @__kmpc_for_static_fini(ptr, i32) local_unnamed_addr #3
+
+; Function Attrs: convergent nounwind
+declare void @__kmpc_barrier(ptr, i32) local_unnamed_addr #4
+
+; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none)
+define internal void @.omp.reduction.func(ptr nocapture readonly %0, ptr nocapture readonly %1) #5 {
+  %3 = load ptr, ptr %0, align 8
+  %4 = load double, ptr %3, align 8
+  %5 = load ptr, ptr %1, align 8
+  %6 = load double, ptr %5, align 8
+  %7 = fadd contract double %4, %6
+  store double %7, ptr %3, align 8
+  ret void
+}
+
+; Function Attrs: convergent nounwind
+declare i32 @__kmpc_reduce(ptr, i32, i32, i64, ptr, ptr, ptr) local_unnamed_addr #4
+
+; Function Attrs: convergent nounwind
+declare void @__kmpc_end_reduce(ptr, i32, ptr) local_unnamed_addr #4
+
+; Function Attrs: nounwind
+declare !callback !10 void @__kmpc_fork_call(ptr, i32, ptr, ...) local_unnamed_addr #3
+
+; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
+declare i32 @llvm.smax.i32(i32, i32) #6
+
+attributes #0 = { mustprogress nofree nounwind willreturn allockind("alloc,uninitialized") allocsize(0) memory(inaccessiblemem: readwrite) "alloc-family"="malloc" }
+attributes #1 = { mustprogress nounwind willreturn allockind("free") memory(argmem: readwrite, inaccessiblemem: readwrite) "alloc-family"="malloc" }
+attributes #2 = { norecurse nounwind }
+attributes #3 = { nounwind }
+attributes #4 = { convergent nounwind }
+attributes #5 = { mustprogress nofree norecurse nosync nounwind willreturn memory(readwrite, inaccessiblemem: none) }
+attributes #6 = { nocallback nofree nosync nounwind speculatable willreturn memory(none) }
+
+!llvm.module.flags = !{!0, !1, !2, !3}
+
+!0 = !{i32 2, !"Debug Info Version", i32 3}
+!1 = !{i32 7, !"openmp", i32 11}
+!2 = !{i32 8, !"PIC Level", i32 2}
+!3 = !{i32 7, !"PIE Level", i32 2}
+!4 = !{!5, !5, i64 0}
+!5 = !{!"any data access", !6, i64 0}
+!6 = !{!"any access", !7, i64 0}
+!7 = !{!"Flang Type TBAA Root"}
+!8 = !{!9, !9, i64 0}
+!9 = !{!"descriptor member", !6, i64 0}
+!10 = !{!11}
+!11 = !{i64 2, i64 -1, i64 -1, i1 true}
