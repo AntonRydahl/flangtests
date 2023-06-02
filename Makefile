@@ -11,9 +11,23 @@ lib: lib/CC/$(APP).o lib/FC/$(APP).o
 
 llvmir: ir/CC/$(APP).ll ir/FC/$(APP).ll
 
-CFLAGS = -fno-pie $(OPT) #std=c99 -Wall -Wextra $(OPT) -fno-pie #-fno-dwarf2-cfi-asm -fno-asynchronous-unwind-tables
+target: bin
 
-FFLAGS = -fno-pie $(OPT) # -fno-pie
+CFLAGS = $(OPT) -pthread -fno-dwarf2-cfi-asm -fno-asynchronous-unwind-tables #-fopenmp #$(OPT) #std=c99 -Wall -Wextra $(OPT) -fno-pie #-fno-dwarf2-cfi-asm -fno-asynchronous-unwind-tables
+
+FFLAGS = $(OPT) #-pie #-fno-pie
+
+LDFLAGS = -L/p/lustre1/rydahl1/LLVM/install/lib -lpthread -lrt -pthread 
+
+ifdef OMP
+CFLAGS += -fopenmp
+FFLAGS += -fopenmp
+LDFLAGS += -lomp -dynamic
+else
+CFLAGS += -fno-pie
+FFLAGS += -fno-pie
+LDFLAGS += -static
+endif
 
 # Compiling source to LLVM IR
 ir/CC/$(APP).ll: src/$(APP).c
@@ -31,17 +45,17 @@ bitcode/FC/$(APP).bc: ir/FC/$(APP).ll
 
 # Compiling bitcode to object files
 lib/CC/$(APP).o: bitcode/CC/$(APP).bc
-	llc -filetype=obj bitcode/CC/$(APP).bc -o lib/CC/$(APP).o
+	llc -filetype=obj -relocation-model=pic bitcode/CC/$(APP).bc -o lib/CC/$(APP).o
 
 lib/FC/$(APP).o: bitcode/FC/$(APP).bc
-	llc -filetype=obj bitcode/FC/$(APP).bc -o lib/FC/$(APP).o
+	llc -filetype=obj -relocation-model=pic bitcode/FC/$(APP).bc -o lib/FC/$(APP).o
 
 # Linking object files
 bin/CC/$(APP): lib/CC/$(APP).o
-	$(CC) lib/CC/$(APP).o -static -o bin/CC/$(APP) -L/p/lustre1/rydahl1/LLVM/install/lib
+	$(CC) $(LDFLAGS) lib/CC/$(APP).o -o bin/CC/$(APP)
 
 bin/FC/$(APP): lib/FC/$(APP).o
-	$(FC) lib/FC/$(APP).o -static -o bin/FC/$(APP) -L/p/lustre1/rydahl1/LLVM/install/lib -pthread 
+	$(FC) $(LDFLAGS) lib/FC/$(APP).o -o bin/FC/$(APP)
 
 #-static -lpthread -o bin/FC/$(APP)
 
