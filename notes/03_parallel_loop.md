@@ -283,7 +283,7 @@ PROGRAM parallel_loop
 !-----------------------------------------------------------------------
 IMPLICIT NONE
 ! Declare local variables
-INTEGER(kind=4)                         :: length, i
+INTEGER(kind=4)                 :: length, i
 REAL(kind=8), allocatable	:: arr(:)
 length = 1024*1024
 allocate (arr(length))
@@ -299,4 +299,184 @@ write(*,100) "The result of arr(1) = arr(",length,") is ", (arr(1) + arr(length)
 ! Deallocate Array
 deallocate(arr)
 END PROGRAM parallel_loop
+```
+
+## Comparison of Code Compiled with `-fopenmp -O3`
+### Code Generated with `clang`
+```llvmir
+; ModuleID = 'src/parallel_loop.c'
+source_filename = "src/parallel_loop.c"
+target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+target triple = "x86_64-unknown-linux-gnu"
+
+@.str = private unnamed_addr constant [42 x i8] c"The result of arr[0] + arr[%d] is %1.9lf\0A\00", align 1
+
+; Function Attrs: nounwind uwtable
+define dso_local i32 @main() local_unnamed_addr #0 {
+entry:
+  %call = tail call noalias dereferenceable_or_null(8388608) ptr @malloc(i64 noundef 8388608) #4
+  br label %vector.body
+
+vector.body:                                      ; preds = %vector.body, %entry
+  %index = phi i64 [ 0, %entry ], [ %index.next.1, %vector.body ]
+  %vec.ind = phi <2 x i32> [ <i32 0, i32 1>, %entry ], [ %vec.ind.next.1, %vector.body ]
+  %step.add = add <2 x i32> %vec.ind, <i32 2, i32 2>
+  %0 = sitofp <2 x i32> %vec.ind to <2 x double>
+  %1 = sitofp <2 x i32> %step.add to <2 x double>
+  %2 = fmul <2 x double> %0, <double 0x3EB0000000000000, double 0x3EB0000000000000>
+  %3 = fmul <2 x double> %1, <double 0x3EB0000000000000, double 0x3EB0000000000000>
+  %4 = getelementptr inbounds double, ptr %call, i64 %index
+  store <2 x double> %2, ptr %4, align 8, !tbaa !3
+  %5 = getelementptr inbounds double, ptr %4, i64 2
+  store <2 x double> %3, ptr %5, align 8, !tbaa !3
+  %index.next = or i64 %index, 4
+  %vec.ind.next = add <2 x i32> %vec.ind, <i32 4, i32 4>
+  %step.add.1 = add <2 x i32> %vec.ind, <i32 6, i32 6>
+  %6 = sitofp <2 x i32> %vec.ind.next to <2 x double>
+  %7 = sitofp <2 x i32> %step.add.1 to <2 x double>
+  %8 = fmul <2 x double> %6, <double 0x3EB0000000000000, double 0x3EB0000000000000>
+  %9 = fmul <2 x double> %7, <double 0x3EB0000000000000, double 0x3EB0000000000000>
+  %10 = getelementptr inbounds double, ptr %call, i64 %index.next
+  store <2 x double> %8, ptr %10, align 8, !tbaa !3
+  %11 = getelementptr inbounds double, ptr %10, i64 2
+  store <2 x double> %9, ptr %11, align 8, !tbaa !3
+  %index.next.1 = add nuw nsw i64 %index, 8
+  %vec.ind.next.1 = add <2 x i32> %vec.ind, <i32 8, i32 8>
+  %12 = icmp eq i64 %index.next.1, 1048576
+  br i1 %12, label %for.cond.cleanup, label %vector.body, !llvm.loop !7
+
+for.cond.cleanup:                                 ; preds = %vector.body
+  %13 = load double, ptr %call, align 8, !tbaa !3
+  %arrayidx2 = getelementptr inbounds double, ptr %call, i64 1048575
+  %14 = load double, ptr %arrayidx2, align 8, !tbaa !3
+  %add = fadd double %13, %14
+  %call3 = tail call i32 (ptr, ...) @printf(ptr noundef nonnull dereferenceable(1) @.str, i32 noundef 1048575, double noundef %add)
+  tail call void @free(ptr noundef nonnull %call) #5
+  ret i32 0
+}
+
+; Function Attrs: mustprogress nofree nounwind willreturn allockind("alloc,uninitialized") allocsize(0) memory(inaccessiblemem: readwrite)
+declare dso_local noalias noundef ptr @malloc(i64 noundef) local_unnamed_addr #1
+
+; Function Attrs: nofree nounwind
+declare dso_local noundef i32 @printf(ptr nocapture noundef readonly, ...) local_unnamed_addr #2
+
+; Function Attrs: mustprogress nounwind willreturn allockind("free") memory(argmem: readwrite, inaccessiblemem: readwrite)
+declare dso_local void @free(ptr allocptr nocapture noundef) local_unnamed_addr #3
+
+attributes #0 = { nounwind uwtable "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #1 = { mustprogress nofree nounwind willreturn allockind("alloc,uninitialized") allocsize(0) memory(inaccessiblemem: readwrite) "alloc-family"="malloc" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #2 = { nofree nounwind "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #3 = { mustprogress nounwind willreturn allockind("free") memory(argmem: readwrite, inaccessiblemem: readwrite) "alloc-family"="malloc" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #4 = { nounwind allocsize(0) }
+attributes #5 = { nounwind }
+
+!llvm.module.flags = !{!0, !1}
+!llvm.ident = !{!2}
+
+!0 = !{i32 1, !"wchar_size", i32 4}
+!1 = !{i32 7, !"uwtable", i32 2}
+!2 = !{!"clang version 17.0.0 (https://github.com/llvm/llvm-project.git 2e4e218474320abf480c39d3b968a5a09477ad03)"}
+!3 = !{!4, !4, i64 0}
+!4 = !{!"double", !5, i64 0}
+!5 = !{!"omnipotent char", !6, i64 0}
+!6 = !{!"Simple C/C++ TBAA"}
+!7 = distinct !{!7, !8, !9, !10}
+!8 = !{!"llvm.loop.mustprogress"}
+!9 = !{!"llvm.loop.isvectorized", i32 1}
+!10 = !{!"llvm.loop.unroll.runtime.disable"}
+```
+
+### Code Generated with `flang-new`
+```llvmir
+; ModuleID = 'FIRModule'
+source_filename = "FIRModule"
+target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+target triple = "x86_64-unknown-linux-gnu"
+
+@_QFEarr.0 = internal unnamed_addr global ptr null
+@_QQcl.412af3a0d982698e911d95b829b2040f = internal constant [48 x i8] c"/g/g92/rydahl1/flangtests/src/parallel_loop.f90\00"
+@_QQcl.28612C69372C612C6631302E3929 = internal constant [14 x i8] c"(a,i7,a,f10.9)"
+@_QQcl.54686520726573756C74206F6620617272283129203D2061727228 = internal constant [27 x i8] c"The result of arr(1) = arr("
+@_QQcl.2920697320 = internal constant [5 x i8] c") is "
+@_QQEnvironmentDefaults = local_unnamed_addr constant ptr null
+
+; Function Attrs: mustprogress nofree nounwind willreturn allockind("alloc,uninitialized") allocsize(0) memory(inaccessiblemem: readwrite)
+declare noalias noundef ptr @malloc(i64 noundef) local_unnamed_addr #0
+
+; Function Attrs: mustprogress nounwind willreturn allockind("free") memory(argmem: readwrite, inaccessiblemem: readwrite)
+declare void @free(ptr allocptr nocapture noundef) local_unnamed_addr #1
+
+define void @_QQmain() local_unnamed_addr {
+vector.ph:
+  %0 = tail call dereferenceable_or_null(8388608) ptr @malloc(i64 8388608)
+  store ptr %0, ptr @_QFEarr.0, align 8, !tbaa !1
+  br label %vector.body
+
+vector.body:                                      ; preds = %vector.body, %vector.ph
+  %index = phi i64 [ 0, %vector.ph ], [ %index.next, %vector.body ]
+  %1 = or i64 %index, 1
+  %2 = insertelement <2 x i64> poison, i64 %index, i64 0
+  %3 = insertelement <2 x i64> %2, i64 %1, i64 1
+  %4 = or i64 %index, 2
+  %5 = or i64 %index, 3
+  %6 = insertelement <2 x i64> poison, i64 %4, i64 0
+  %7 = insertelement <2 x i64> %6, i64 %5, i64 1
+  %8 = trunc <2 x i64> %3 to <2 x i32>
+  %9 = trunc <2 x i64> %7 to <2 x i32>
+  %10 = sitofp <2 x i32> %8 to <2 x double>
+  %11 = sitofp <2 x i32> %9 to <2 x double>
+  %12 = fmul contract <2 x double> %10, <double 0x3EB0000000000000, double 0x3EB0000000000000>
+  %13 = fmul contract <2 x double> %11, <double 0x3EB0000000000000, double 0x3EB0000000000000>
+  %14 = getelementptr double, ptr %0, i64 %index
+  store <2 x double> %12, ptr %14, align 8, !tbaa !5
+  %15 = getelementptr double, ptr %14, i64 2
+  store <2 x double> %13, ptr %15, align 8, !tbaa !5
+  %index.next = add nuw i64 %index, 4
+  %16 = icmp eq i64 %index.next, 1048576
+  br i1 %16, label %middle.block, label %vector.body, !llvm.loop !7
+
+middle.block:                                     ; preds = %vector.body
+  %17 = tail call ptr @_FortranAioBeginExternalFormattedOutput(ptr nonnull @_QQcl.28612C69372C612C6631302E3929, i64 14, ptr null, i32 -1, ptr nonnull @_QQcl.412af3a0d982698e911d95b829b2040f, i32 18)
+  %18 = tail call i1 @_FortranAioOutputAscii(ptr %17, ptr nonnull @_QQcl.54686520726573756C74206F6620617272283129203D2061727228, i64 27)
+  %19 = tail call i1 @_FortranAioOutputInteger32(ptr %17, i32 1048576)
+  %20 = tail call i1 @_FortranAioOutputAscii(ptr %17, ptr nonnull @_QQcl.2920697320, i64 5)
+  %.unpack = load ptr, ptr @_QFEarr.0, align 8, !tbaa !1
+  %21 = load double, ptr %.unpack, align 8, !tbaa !5
+  %22 = getelementptr double, ptr %.unpack, i64 1048575
+  %23 = load double, ptr %22, align 8, !tbaa !5
+  %24 = fadd contract double %21, %23
+  %25 = tail call i1 @_FortranAioOutputReal64(ptr %17, double %24)
+  %26 = tail call i32 @_FortranAioEndIoStatement(ptr %17)
+  %.unpack121 = load ptr, ptr @_QFEarr.0, align 8, !tbaa !1
+  tail call void @free(ptr %.unpack121)
+  store ptr null, ptr @_QFEarr.0, align 8, !tbaa !1
+  ret void
+}
+
+declare ptr @_FortranAioBeginExternalFormattedOutput(ptr, i64, ptr, i32, ptr, i32) local_unnamed_addr
+
+declare zeroext i1 @_FortranAioOutputAscii(ptr, ptr, i64) local_unnamed_addr
+
+declare zeroext i1 @_FortranAioOutputInteger32(ptr, i32) local_unnamed_addr
+
+declare zeroext i1 @_FortranAioOutputReal64(ptr, double) local_unnamed_addr
+
+declare i32 @_FortranAioEndIoStatement(ptr) local_unnamed_addr
+
+attributes #0 = { mustprogress nofree nounwind willreturn allockind("alloc,uninitialized") allocsize(0) memory(inaccessiblemem: readwrite) "alloc-family"="malloc" }
+attributes #1 = { mustprogress nounwind willreturn allockind("free") memory(argmem: readwrite, inaccessiblemem: readwrite) "alloc-family"="malloc" }
+
+!llvm.module.flags = !{!0}
+
+!0 = !{i32 2, !"Debug Info Version", i32 3}
+!1 = !{!2, !2, i64 0}
+!2 = !{!"descriptor member", !3, i64 0}
+!3 = !{!"any access", !4, i64 0}
+!4 = !{!"Flang Type TBAA Root"}
+!5 = !{!6, !6, i64 0}
+!6 = !{!"any data access", !3, i64 0}
+!7 = distinct !{!7, !8, !9}
+!8 = !{!"llvm.loop.isvectorized", i32 1}
+!9 = !{!"llvm.loop.unroll.runtime.disable"}
 ```
