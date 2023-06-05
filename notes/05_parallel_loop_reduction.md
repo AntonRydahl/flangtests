@@ -1,4 +1,10 @@
-# OpenMP Parallel For/Do Reductions in `clang` ad `flang-new`
+# OpenMP Parallel For/Do Reductions in `clang` and `flang-new`
+
+## Summary of Findings
+This example compares a super simple reduction that yields `1`.<br>
+In this example, `clang` applies vectorization at optimization level three. Each iteration reuses a constant. This constant has been propagated in `clang`.<br>
+The `flang-new` compiler has not applied vectorization nor constant propagation at optimization level three.
+
 
 ## `C` Program
 ```C
