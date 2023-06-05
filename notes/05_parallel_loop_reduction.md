@@ -361,7 +361,9 @@ omp.inner.for.body.prol.loopexit:                 ; preds = %omp.inner.for.body.
   %indvars.iv.unr = phi i64 [ %4, %omp.inner.for.body.lr.ph ], [ %indvars.iv.next.prol, %omp.inner.for.body.prol ]
   %10 = icmp ult i32 %8, 3
   br i1 %10, label %omp.loop.exit, label %omp.inner.for.body
-
+```
+Constant propagation has been carried out. Note that `0x3EB0000000000000` in hexadecimal is `9.5367431640625e-7` in decimal, and that `1024*1024*9.5367431640625e-7=1.0`. Further, loop unrolling has been appplied such that four elements are handled per iteration.
+```llvm
 omp.inner.for.body:                               ; preds = %omp.inner.for.body.prol.loopexit, %omp.inner.for.body
   %indvars.iv = phi i64 [ %indvars.iv.next.3, %omp.inner.for.body ], [ %indvars.iv.unr, %omp.inner.for.body.prol.loopexit ]
   %arrayidx = getelementptr inbounds double, ptr %3, i64 %indvars.iv
@@ -387,6 +389,9 @@ omp.inner.for.body:                               ; preds = %omp.inner.for.body.
   %14 = load double, ptr %sum1, align 8, !tbaa !11
   %add5.3 = fadd double %14, 0x3EB0000000000000
   store double %add5.3, ptr %sum1, align 8, !tbaa !11
+```
+Due to vectorization, the loop counter is incremented by four.
+```  
   %indvars.iv.next.3 = add nsw i64 %indvars.iv, 4
   %lftr.wideiv.3 = trunc i64 %indvars.iv.next.3 to i32
   %exitcond.not.3 = icmp eq i32 %5, %lftr.wideiv.3
@@ -923,7 +928,9 @@ entry:
   store i1 false, ptr @_QFEarr.8, align 1
   ret void
 }
-
+```
+The statically allocated variable `%0` is now `%structArg`. Thereby, `loadgep_` points to percent `%2` from the previous scope, which is the array length `1024*1024=1048576`.
+```llvm
 ; Function Attrs: norecurse nounwind
 define internal void @_QQmain..omp_par(ptr noalias nocapture readnone %tid.addr, ptr noalias nocapture readnone %zero.addr, ptr nocapture readonly %0) #2 {
 omp.par.entry:
@@ -998,7 +1005,11 @@ reduce.switch.nonatomic:                          ; preds = %omp_loop.exit
 reduce.finalize:                                  ; preds = %omp_loop.exit, %reduce.switch.nonatomic
   call void @__kmpc_barrier(ptr nonnull @2, i32 %omp_global_thread_num6)
   ret void
-
+```
+In the following lines, `flang-new -O3` has not performed constant propagation of the devision of one by the array length. Floatig point contraction has been enabled with `fadd constract` and `fdiv contract`. `%10` is converted from `%9%` which is loaded from `%loadgep_`, which is ultumately the array length.<br>
+<font color='red'>In the code generated with `clang`, vectorization with a vector length of four had been applied, and constant propagation was enabled.</font><br>
+However, one optimiation that has kicked in is floating point contraction. Division is carried out in FP32 precision and extended to FP64.
+```llvm
 omp_loop.body:                                    ; preds = %omp_loop.body.lr.ph, %omp_loop.body
   %omp_loop.iv68 = phi i32 [ 0, %omp_loop.body.lr.ph ], [ %7, %omp_loop.body ]
   %7 = add nuw i32 %omp_loop.iv68, 1
@@ -1031,6 +1042,9 @@ omp_loop.body:                                    ; preds = %omp_loop.body.lr.ph
   store i64 1, ptr %loadgep_6.repack61, align 8, !tbaa !8
   store i64 %.unpack14.unpack.unpack16, ptr %loadgep_6.repack61.repack63, align 8, !tbaa !8
   store i64 8, ptr %loadgep_6.repack61.repack65, align 8, !tbaa !8
+```
+Adding result to local reduction variable, `%1`.
+```llvm
   %16 = load double, ptr %1, align 8
   %17 = fadd contract double %16, %12
   store double %17, ptr %1, align 8
