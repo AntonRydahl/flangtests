@@ -2,6 +2,7 @@
 Inspired by [`./05_parallel_loop_reduction.md`](https://github.com/AntonRydahl/flangtests/tree/main/notes/05_parallel_loop_reduction.md), it was investigated when `flang-new` generates reasonably optimized code for simple OpenMP parallel for loops, and when the array desciptors occur in the optimized hot loop.
 
 ## Minimal Code Change
+The only change from example one to two is the introduction of a private variable that is not used for anything except for reading the result that was just written to `arr(i)`.
 <table>
 <tr>
 <td> Example I </td> <td> Example II </td>
@@ -18,7 +19,7 @@ PROGRAM array_descriptor
 IMPLICIT NONE
 ! Declare local variables
 INTEGER(kind=4)                 :: length, i
-REAL(kind=8), allocatable	    :: arr(:)
+REAL(kind=8), allocatable       :: arr(:)
 length = 1024*1024
 allocate (arr(length))
 ! Parallel do loop
@@ -47,7 +48,7 @@ PROGRAM duplicate_array_descriptors
 IMPLICIT NONE
 ! Declare local variables
 INTEGER(kind=4)                 :: length, i
-REAL(kind=8), allocatable	    :: arr(:)
+REAL(kind=8), allocatable       :: arr(:)
 REAL(kind=8)                    :: tmp
 length = 1024*1024
 allocate (arr(length))
@@ -73,7 +74,10 @@ END PROGRAM duplicate_array_descriptors
 </table>
 
 ## LLVM IR
-
+The following two sections shows the intermediate representation resulting from compiling the two test programs with 
+```bash
+flang-new -fopenmp -O3 -emit-llvm -S
+```
 ### LLVM IR From Example I (Working)
 ```llvm
 vector.body:                                      ; preds = %vector.body, %vector.ph
@@ -142,4 +146,122 @@ omp_loop.body:                                    ; preds = %omp_loop.body.lr.ph
   store i64 8, ptr %loadgep_4.repack59.repack63, align 8, !tbaa !8
   %exitcond.not = icmp eq i32 %omp_loop.iv66, %reass.sub
   br i1 %exitcond.not, label %omp_loop.exit, label %omp_loop.body
+```
+
+## Finding the Optimization Pass that Introduces the Bug
+The intermediate representation was printed after all of the LLVM passes with the following command:
+```bash
+flang-new -O3  -fopenmp -emit-llvm -mllvm -print-after-all -S src/duplicate_array_descriptors.f90 -o ir/FC/duplicate_array_descriptors.ll &> ir/FC/duplicate_array_descriptors.ll.dump
+```
+By inspecting `ir/FC/duplicate_array_descriptors.ll.dump` it was found that the optimization pass `InstCombinePass` introduces a lot of stores in the hot loop.
+### LLVM IR Before `InstCombinePass`
+Before the optimization pass, there are a lot of unnecessary load instructions.
+```llvm
+omp_loop.body:                                    ; preds = %omp_loop.header
+  %9 = add i32 %omp_loop.iv, %5
+  %10 = add i32 %9, 1
+  %11 = load i32, ptr %loadgep_, align 4, !tbaa !4
+  %12 = sitofp i32 %11 to float
+  %13 = fdiv contract float 1.000000e+00, %12
+  %14 = fpext float %13 to double
+  %15 = load { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr @_QFEarr, align 8, !tbaa !8
+  store { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] } %15, ptr %loadgep_2, align 8, !tbaa !8
+  %16 = getelementptr { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_2, i32 0, i32 7, i64 0, i32 0
+  %17 = load i64, ptr %16, align 8, !tbaa !8
+  %18 = getelementptr { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_2, i32 0, i32 7, i64 0, i32 1
+  %19 = getelementptr { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_2, i32 0, i32 7, i64 0, i32 2
+  %20 = load ptr, ptr %loadgep_2, align 8, !tbaa !8
+  %21 = sext i32 %10 to i64
+  %22 = sub i64 %21, %17
+  %23 = getelementptr double, ptr %20, i64 %22
+  store double %14, ptr %23, align 8, !tbaa !4
+  %24 = load { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr @_QFEarr, align 8, !tbaa !8
+  store { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] } %24, ptr %loadgep_4, align 8, !tbaa !8
+  %25 = getelementptr { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_4, i32 0, i32 7, i64 0, i32 0
+  %26 = load i64, ptr %25, align 8, !tbaa !8
+  %27 = getelementptr { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_4, i32 0, i32 7, i64 0, i32 1
+  %28 = getelementptr { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_4, i32 0, i32 7, i64 0, i32 2
+  %29 = load ptr, ptr %loadgep_4, align 8, !tbaa !8
+  %30 = sub i64 %21, %26
+  %31 = getelementptr double, ptr %29, i64 %30
+  %omp_loop.next = add nuw i32 %omp_loop.iv, 1
+  br label %omp_loop.header
+```
+### LLVM IR After `InstCombinePass`
+After the optimization pass, there are still a lot of unneceassry load instructions, but `InstCombinePass` instroduces a lot of unnecessary store instructions which are not removed by any of the following optimization passes.
+```llvm
+omp_loop.body:                                    ; preds = %omp_loop.header
+  %7 = add i32 %omp_loop.iv, %3
+  %8 = add i32 %7, 1
+  %9 = load i32, ptr %loadgep_, align 4, !tbaa !4
+  %10 = sitofp i32 %9 to float
+  %11 = fdiv contract float 1.000000e+00, %10
+  %12 = fpext float %11 to double
+  %.unpack = load ptr, ptr @_QFEarr, align 16, !tbaa !8
+  %.unpack6 = load i64, ptr getelementptr inbounds ({ ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr @_QFEarr, i64 0, i32 1), align 8, !tbaa !8
+  %.unpack7 = load i32, ptr getelementptr inbounds ({ ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr @_QFEarr, i64 0, i32 2), align 16, !tbaa !8
+  %.unpack8 = load i8, ptr getelementptr inbounds ({ ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr @_QFEarr, i64 0, i32 3), align 4, !tbaa !8
+  %.unpack9 = load i8, ptr getelementptr inbounds ({ ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr @_QFEarr, i64 0, i32 4), align 1, !tbaa !8
+  %.unpack10 = load i8, ptr getelementptr inbounds ({ ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr @_QFEarr, i64 0, i32 5), align 2, !tbaa !8
+  %.unpack11 = load i8, ptr getelementptr inbounds ({ ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr @_QFEarr, i64 0, i32 6), align 1, !tbaa !8
+  %.unpack12.unpack.unpack = load i64, ptr getelementptr inbounds ({ ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr @_QFEarr, i64 0, i32 7), align 8, !tbaa !8
+  %.unpack12.unpack.unpack14 = load i64, ptr getelementptr inbounds ({ ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr @_QFEarr, i64 0, i32 7, i64 0, i64 1), align 16, !tbaa !8
+  %.unpack12.unpack.unpack15 = load i64, ptr getelementptr inbounds ({ ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr @_QFEarr, i64 0, i32 7, i64 0, i64 2), align 8, !tbaa !8
+  store ptr %.unpack, ptr %loadgep_2, align 8, !tbaa !8
+  %loadgep_2.repack17 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_2, i64 0, i32 1
+  store i64 %.unpack6, ptr %loadgep_2.repack17, align 8, !tbaa !8
+  %loadgep_2.repack19 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_2, i64 0, i32 2
+  store i32 %.unpack7, ptr %loadgep_2.repack19, align 8, !tbaa !8
+  %loadgep_2.repack21 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_2, i64 0, i32 3
+  store i8 %.unpack8, ptr %loadgep_2.repack21, align 4, !tbaa !8
+  %loadgep_2.repack23 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_2, i64 0, i32 4
+  store i8 %.unpack9, ptr %loadgep_2.repack23, align 1, !tbaa !8
+  %loadgep_2.repack25 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_2, i64 0, i32 5
+  store i8 %.unpack10, ptr %loadgep_2.repack25, align 2, !tbaa !8
+  %loadgep_2.repack27 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_2, i64 0, i32 6
+  store i8 %.unpack11, ptr %loadgep_2.repack27, align 1, !tbaa !8
+  %loadgep_2.repack29 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_2, i64 0, i32 7
+  store i64 %.unpack12.unpack.unpack, ptr %loadgep_2.repack29, align 8, !tbaa !8
+  %loadgep_2.repack29.repack31 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_2, i64 0, i32 7, i64 0, i64 1
+  store i64 %.unpack12.unpack.unpack14, ptr %loadgep_2.repack29.repack31, align 8, !tbaa !8
+  %loadgep_2.repack29.repack33 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_2, i64 0, i32 7, i64 0, i64 2
+  store i64 %.unpack12.unpack.unpack15, ptr %loadgep_2.repack29.repack33, align 8, !tbaa !8
+  %13 = getelementptr { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_2, i64 0, i32 7, i64 0, i64 0
+  %14 = load i64, ptr %13, align 8, !tbaa !8
+  %15 = load ptr, ptr %loadgep_2, align 8, !tbaa !8
+  %16 = sext i32 %8 to i64
+  %17 = sub i64 %16, %14
+  %18 = getelementptr double, ptr %15, i64 %17
+  store double %12, ptr %18, align 8, !tbaa !4
+  %.unpack35 = load ptr, ptr @_QFEarr, align 16, !tbaa !8
+  %.unpack36 = load i64, ptr getelementptr inbounds ({ ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr @_QFEarr, i64 0, i32 1), align 8, !tbaa !8
+  %.unpack37 = load i32, ptr getelementptr inbounds ({ ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr @_QFEarr, i64 0, i32 2), align 16, !tbaa !8
+  %.unpack38 = load i8, ptr getelementptr inbounds ({ ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr @_QFEarr, i64 0, i32 3), align 4, !tbaa !8
+  %.unpack39 = load i8, ptr getelementptr inbounds ({ ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr @_QFEarr, i64 0, i32 4), align 1, !tbaa !8
+  %.unpack40 = load i8, ptr getelementptr inbounds ({ ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr @_QFEarr, i64 0, i32 5), align 2, !tbaa !8
+  %.unpack41 = load i8, ptr getelementptr inbounds ({ ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr @_QFEarr, i64 0, i32 6), align 1, !tbaa !8
+  %.unpack42.unpack.unpack = load i64, ptr getelementptr inbounds ({ ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr @_QFEarr, i64 0, i32 7), align 8, !tbaa !8
+  %.unpack42.unpack.unpack44 = load i64, ptr getelementptr inbounds ({ ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr @_QFEarr, i64 0, i32 7, i64 0, i64 1), align 16, !tbaa !8
+  %.unpack42.unpack.unpack45 = load i64, ptr getelementptr inbounds ({ ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr @_QFEarr, i64 0, i32 7, i64 0, i64 2), align 8, !tbaa !8
+  store ptr %.unpack35, ptr %loadgep_4, align 8, !tbaa !8
+  %loadgep_4.repack47 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_4, i64 0, i32 1
+  store i64 %.unpack36, ptr %loadgep_4.repack47, align 8, !tbaa !8
+  %loadgep_4.repack49 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_4, i64 0, i32 2
+  store i32 %.unpack37, ptr %loadgep_4.repack49, align 8, !tbaa !8
+  %loadgep_4.repack51 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_4, i64 0, i32 3
+  store i8 %.unpack38, ptr %loadgep_4.repack51, align 4, !tbaa !8
+  %loadgep_4.repack53 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_4, i64 0, i32 4
+  store i8 %.unpack39, ptr %loadgep_4.repack53, align 1, !tbaa !8
+  %loadgep_4.repack55 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_4, i64 0, i32 5
+  store i8 %.unpack40, ptr %loadgep_4.repack55, align 2, !tbaa !8
+  %loadgep_4.repack57 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_4, i64 0, i32 6
+  store i8 %.unpack41, ptr %loadgep_4.repack57, align 1, !tbaa !8
+  %loadgep_4.repack59 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_4, i64 0, i32 7
+  store i64 %.unpack42.unpack.unpack, ptr %loadgep_4.repack59, align 8, !tbaa !8
+  %loadgep_4.repack59.repack61 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_4, i64 0, i32 7, i64 0, i64 1
+  store i64 %.unpack42.unpack.unpack44, ptr %loadgep_4.repack59.repack61, align 8, !tbaa !8
+  %loadgep_4.repack59.repack63 = getelementptr inbounds { ptr, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }, ptr %loadgep_4, i64 0, i32 7, i64 0, i64 2
+  store i64 %.unpack42.unpack.unpack45, ptr %loadgep_4.repack59.repack63, align 8, !tbaa !8
+  %omp_loop.next = add nuw i32 %omp_loop.iv, 1
+  br label %omp_loop.header
 ```
