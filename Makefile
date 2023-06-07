@@ -31,7 +31,7 @@ endif
 
 # Compiling source to LLVM IR
 ir/CC/$(APP).ll: src/$(APP).c
-	$(CC) $(CFLAGS) -emit-llvm -S  src/$(APP).c -o ir/CC/$(APP).ll
+	$(CC) $(CFLAGS) -emit-llvm -S src/$(APP).c -o ir/CC/$(APP).ll
 
 ir/FC/$(APP).ll: src/$(APP).f90
 	$(FC) $(FFLAGS) -emit-llvm -S src/$(APP).f90 -o ir/FC/$(APP).ll
@@ -57,6 +57,17 @@ bin/CC/$(APP): lib/CC/$(APP).o
 bin/FC/$(APP): lib/FC/$(APP).o
 	$(FC) $(LDFLAGS) lib/FC/$(APP).o -o bin/FC/$(APP)
 
+# Dumping LLVM ir after all LLVM passes
+llvmirdump:
+	rm -rf ir/CC/$(APP).ll.dump ir/FC/$(APP).ll.dump
+	$(CC) $(CFLAGS) -emit-llvm -mllvm -print-after-all -S src/$(APP).c -o ir/CC/$(APP).ll &> ir/CC/$(APP).ll.dump
+	$(FC) $(FFLAGS) -emit-llvm -mllvm -print-after-all -S src/$(APP).f90 -o ir/FC/$(APP).ll &> ir/FC/$(APP).ll.dump
+
+# Dumping MLIR for flang-new
+mlirdump:
+	rm -rf mlir/FC/$(APP).mlir mlir/FC/$(APP).mlir.dump
+	$(FC) $(FFLAGS) -mmlir -mlir-print-ir-after-all -S src/$(APP).f90 -o mlir/FC/$(APP).mlir &> mlir/FC/$(APP).mlir.dump
+
 #-static -lpthread -o bin/FC/$(APP)
 
 # Removing files
@@ -64,7 +75,7 @@ clean:
 	rm -rf ir/FC/$(APP).ll ir/CC/$(APP).ll
 
 realclean:
-	rm -rf ir/FC/* ir/CC/* bin/FC/* bin/CC/* lib/CC/* lib/FC/* bitcode/FC/* bitcode/CC/*
+	rm -rf ir/FC/* ir/CC/* bin/FC/* bin/CC/* lib/CC/* lib/FC/* bitcode/FC/* bitcode/CC/* mlir/FC/*
 
 
 #clang -S -emit-llvm "./$1/test.c" -O3 -o "./$1/cbin/test_O3.ll"

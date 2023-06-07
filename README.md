@@ -11,3 +11,5 @@ This will generate multiple output files. LLVM IR is stored in `./ir/`, bitcode 
 ## Calling FORTRAN Subroutines and Functions from C
 The folder [`./cbindings_offloading`](https://github.com/AntonRydahl/flangtests/tree/main/cbindings_offloading) contains examples of how `FORTRAN` subroutines can be called from OpenMP target offloading regions in `C`. It is shown how functions and subroutines are called in different ways, and how the functions can be called by other names in `C`.
 
+## Dumping Intermadediate Representations
+The LLVM IR can be printed after each LLVM optimization pass with `make llvmirdump` for both `flang-new` anfd `clang`. As `flang-new` does not lower the source code directly to LLVM IR, it may be necessary to inspect other levels of intermediate representation. The MLIR from `flang-new` can be printed with `make mlirdump`.
