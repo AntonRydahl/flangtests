@@ -15,13 +15,13 @@ target: bin
 
 CFLAGS = $(OPT) -pthread -fno-dwarf2-cfi-asm -fno-asynchronous-unwind-tables #-fopenmp #$(OPT) #std=c99 -Wall -Wextra $(OPT) -fno-pie #-fno-dwarf2-cfi-asm -fno-asynchronous-unwind-tables
 
-FFLAGS = $(OPT) #-pie #-fno-pie
+FFLAGS = $(OPT) $(FOPT) -cpp #-fno-dwarf2-cfi-asm -fno-asynchronous-unwind-tables #-pie #-fno-pie
 
 LDFLAGS = -L/p/lustre1/rydahl1/LLVM/install/lib -lpthread -lrt -pthread 
 
 ifdef OMP
-CFLAGS += -fopenmp
-FFLAGS += -fopenmp
+CFLAGS += -fopenmp -DOPENMP
+FFLAGS += -fopenmp -DOPENMP
 LDFLAGS += -lomp -dynamic
 else
 CFLAGS += -fno-pie
